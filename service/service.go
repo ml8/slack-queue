@@ -69,6 +69,8 @@ func (s *Service) Dequeue(req *DequeueRequest, resp *DequeueResponse) (err error
 	if e != nil {
 		glog.Infof("Queue empty (v %v)", seq)
 		resp.User = nil
+		err = nil
+		return
 	}
 	glog.Infof("Dequeueing %v (v %v)", el.Id, seq)
 	user, err := s.u.Lookup(el.Id)
