@@ -16,7 +16,7 @@ func enqueueAsBlock(cmd *slack.SlashCommand, resp *EnqueueResponse) (b []byte) {
 	} else {
 		statusstr = fmt.Sprintf("*Status:*\nYou are already queued at position %d.", resp.Pos+1)
 	}
-	timestr := "*Enqueued At:*\n" + resp.Timestamp.Local().String()
+	timestr := fmt.Sprintf("*Enqueued At:*\n%v", resp.Timestamp.Local())
 
 	fields := make([]*slack.TextBlockObject, 2)
 	fields[0] = slack.NewTextBlockObject("mrkdwn", statusstr, false, false)
@@ -29,6 +29,12 @@ func enqueueAsBlock(cmd *slack.SlashCommand, resp *EnqueueResponse) (b []byte) {
 		glog.Fatalf("Error marshalling json: %v", err)
 	}
 	return
+}
+
+func buildEnqueueAdminMessage(resp *EnqueueResponse) (blocks []slack.Block) {
+	str := fmt.Sprintf("%s added to queue in position %d", resp.User.Name, resp.Pos+1)
+	blocks = []slack.Block{slack.NewContextBlock("context"), slack.NewTextBlockObject("mrkdwn", str, false, false)}
+	return blocks
 }
 
 func (c *PutCommand) Handle(cmd *slack.SlashCommand, s *Service, w http.ResponseWriter) (err error) {
@@ -50,5 +56,11 @@ func (c *PutCommand) Handle(cmd *slack.SlashCommand, s *Service, w http.Response
 	b := enqueueAsBlock(cmd, resp)
 	w.Header().Set("Content-Type", "application/json")
 	w.Write(b)
+
+	cerr := c.perms.SendAdminMessage(buildEnqueueAdminMessage(resp)...)
+	if cerr != nil {
+		glog.Errorf("Error sending admin message for enqueue of %v: %v", cmd.UserName, cerr)
+	}
+
 	return
 }

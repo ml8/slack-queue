@@ -1,7 +1,7 @@
 package main
 
 import (
-	"github.com/matthewlang/slackqueue/service"
+	"github.com/matthewlang/slack-queue/service"
 	"github.com/slack-go/slack"
 
 	"github.com/golang/glog"
@@ -14,14 +14,17 @@ import (
 
 var srv *service.Service
 var api *slack.Client
+var perms service.PermissionChecker
 var cmds map[string]service.Command
 
 // Flags
 var (
-	oauth         string
-	signingSecret string
-	clientSecret  string
-	port          string
+	oauth         string // OAuth token
+	signingSecret string // Application signing secret
+	clientSecret  string // Application client secret
+	port          string // Port to listen on
+	adminChannel  string // Channel containing admin users
+	cmdUrl        string // URL to receive slash commands
 )
 
 func forward(w http.ResponseWriter, r *http.Request) {
@@ -54,16 +57,23 @@ func main() {
 	flag.StringVar(&signingSecret, "ssecret", "", "Application signing secret")
 	flag.StringVar(&clientSecret, "csecret", "", "Application client secret")
 	flag.StringVar(&port, "p", ":1000", "Port to listen on")
+	flag.StringVar(&adminChannel, "authChannel", "", "Channel containing admin users")
+	flag.StringVar(&cmdUrl, "cmdUrl", "/slash", "URL to receive slash commands (e.g., '/slash' or '/receive', etc.)")
+
+	// TODO remove
 	flag.Set("logtostderr", "true")
+	flag.Set("v", "2")
+
 	flag.Parse()
 
 	glog.Infof("Starting on port %v ...", port)
 
 	api = slack.New(oauth)
 	srv = service.InMemoryTS(api)
-	cmds = service.Defaults(api)
+	perms = service.MakeChannelPermissionChecker(api, adminChannel)
+	cmds = service.Defaults(api, perms)
 
-	http.HandleFunc("/slash", forward)
+	http.HandleFunc(cmdUrl, forward)
 
 	glog.Infof("Listening...")
 	http.ListenAndServe(port, nil)

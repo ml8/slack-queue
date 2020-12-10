@@ -1,7 +1,7 @@
 package service
 
 import (
-	"github.com/matthewlang/slackqueue/queue"
+	"github.com/matthewlang/slack-queue/queue"
 
 	"github.com/golang/glog"
 	"github.com/slack-go/slack"
