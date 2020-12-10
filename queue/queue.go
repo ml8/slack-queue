@@ -103,7 +103,7 @@ func (q *queueImpl) Put(el Element) (pos int, err error) {
 	}
 	glog.Infof("Put %s", el.Id)
 	q.els = append(q.els, el)
-	pos = len(q.els)
+	pos = len(q.els) - 1
 	return
 }
 
