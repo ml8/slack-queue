@@ -33,7 +33,7 @@ func enqueueAsBlock(cmd *slack.SlashCommand, resp *EnqueueResponse) (b []byte) {
 
 func buildEnqueueAdminMessage(resp *EnqueueResponse) (blocks []slack.Block) {
 	str := fmt.Sprintf("%s added to queue in position %d", resp.User.Name, resp.Pos+1)
-	blocks = []slack.Block{slack.NewContextBlock("context"), slack.NewTextBlockObject("mrkdwn", str, false, false)}
+	blocks = []slack.Block{slack.NewContextBlock("context", slack.NewTextBlockObject("mrkdwn", str, false, false))}
 	return blocks
 }
 
