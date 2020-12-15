@@ -5,19 +5,39 @@ import (
 	"github.com/slack-go/slack"
 
 	"encoding/json"
+	"errors"
+	"fmt"
 	"net/http"
 	"strconv"
+	"strings"
 	"time"
 )
 
+func GenerateActionValue(uid string, token int64) string {
+	return fmt.Sprintf("%s_%d", uid, token)
+}
+
+func ParseActionValue(value string) (uid string, token int64, err error) {
+	arr := strings.Split(value, "_")
+	if len(arr) != 2 {
+		err = errors.New(fmt.Sprintf("Invalid value string '%v'", value))
+		return
+	}
+	uid = arr[0]
+	token, err = strconv.ParseInt(arr[1], 10, 64)
+	return
+}
+
 func listAsBlock(resp *ListResponse) (b []byte) {
-	blocks := make([]slack.Block, len(resp.Users)*2)
+	blocks := make([]slack.Block, len(resp.Users)*3)
 	for i, user := range resp.Users {
-		blocks[i*2] = slack.NewDividerBlock()
-		userinfo := strconv.Itoa(i+1) + ": " + user.Name + "\nwait time: " + (time.Now().Sub(resp.Times[i])).String()
+		blocks[i*3] = slack.NewDividerBlock()
+		userinfo := fmt.Sprintf("*%d:* <slack://user?id=%s&team=%s|%s>\nwait time: %s", i+1, user.ID, user.TeamID, user.Name, (time.Now().Sub(resp.Times[i])).String())
 		userblock := slack.NewTextBlockObject("mrkdwn", userinfo, false, false)
-		iconblock := slack.NewImageBlockElement(user.Profile.Image32, user.Name)
-		blocks[i*2+1] = slack.NewSectionBlock(userblock, nil, slack.NewAccessory(iconblock))
+		iconblock := slack.NewImageBlockElement(user.Profile.Image24, user.Name)
+		blocks[i*3+1] = slack.NewSectionBlock(userblock, nil, slack.NewAccessory(iconblock))
+		remove := slack.NewButtonBlockElement("remove", GenerateActionValue(user.ID, resp.Token), slack.NewTextBlockObject("plain_text", "Remove", false, false))
+		blocks[i*3+2] = slack.NewActionBlock(fmt.Sprintf("actions_%v", user.ID), remove)
 	}
 
 	msg := slack.NewBlockMessage(blocks...)
@@ -25,6 +45,7 @@ func listAsBlock(resp *ListResponse) (b []byte) {
 	if err != nil {
 		glog.Fatalf("Error marshalling json: %v", err)
 	}
+	glog.V(2).Infof("List response:\n%v", string(b))
 	return
 }
 

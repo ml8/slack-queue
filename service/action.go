@@ -11,6 +11,10 @@ func DefaultActions(api *slack.Client, perms PermissionChecker) (actions map[str
 	return
 }
 
+func ParseAction(actionID string) string {
+	return actionID
+}
+
 type Action interface {
 	Handle(action *slack.InteractionCallback, s *Service, w http.ResponseWriter)
 }

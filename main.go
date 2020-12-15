@@ -85,7 +85,7 @@ func forwardAction(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	handler, ok := actions[cb.ActionID]
+	handler, ok := actions[service.ParseAction(cb.ActionID)]
 	if !ok {
 		glog.Errorf("Unknown action type: %v", cb.ActionID)
 		w.WriteHeader(http.StatusNotFound)
