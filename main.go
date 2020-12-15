@@ -12,7 +12,6 @@ import (
 	"io/ioutil"
 	"net/http"
 	"net/url"
-	"strings"
 )
 
 var srv *service.Service
@@ -77,7 +76,7 @@ func forwardAction(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
-	js = strings.TrimPrefix(js, "payload=")
+	glog.V(2).Infof("Action callback:\n%v", js)
 	var cb slack.InteractionCallback
 	if err := json.Unmarshal([]byte(js), &cb); err != nil {
 		glog.Errorf("Error unmarshalling callback: %v", err)
@@ -85,7 +84,18 @@ func forwardAction(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	handler, ok := actions[service.ParseAction(cb.ActionID)]
+	glog.V(2).Infof("Action callback:\n%v", js)
+
+	var handler service.Action
+	ok := false
+	// Only looking for block actions; right now at most one per payload.
+	for _, act := range cb.ActionCallback.BlockActions {
+		handler, ok = actions[service.ParseAction(act.ActionID)]
+		if ok {
+			break
+		}
+	}
+
 	if !ok {
 		glog.Errorf("Unknown action type: %v", cb.ActionID)
 		w.WriteHeader(http.StatusNotFound)
@@ -110,6 +120,14 @@ func main() {
 	flag.Parse()
 
 	glog.Infof("Starting on port %v ...", port)
+
+	str := `{"type":"block_actions","user":{"id":"U01H5A7EAJC","username":"langma","name":"langma","team_id":"T01G0NGGZK9"},"api_app_id":"A01GMKWN0TW","token":"jrqQqPPhXLV6faVcS0ueWG55","container":{"type":"message","message_ts":"1608059435.001000","channel_id":"C01GCCBL5GV","is_ephemeral":true},"trigger_id":"1589929845329.1544764577655.4f82db2690090418bf03f9b221f0a18e","team":{"id":"T01G0NGGZK9","domain":"langtestworkspace"},"enterprise":null,"is_enterprise_install":false,"channel":{"id":"C01GCCBL5GV","name":"queuetest"},"response_url":"https:\/\/hooks.slack.com\/actions\/T01G0NGGZK9\/1577299513202\/EkXGc3AD4Ha1u9Yj0FPUve8x","actions":[{"action_id":"remove","block_id":"actions_U01H5A7EAJC","text":{"type":"plain_text","text":"Remove","emoji":true},"value":"U01H5A7EAJC_1","type":"button","action_ts":"1608059436.541193"}]}`
+
+	var cb slack.InteractionCallback
+	err := json.Unmarshal([]byte(str), &cb)
+	glog.Infof("str %v", str)
+	glog.Infof("err %v", err)
+	glog.Infof("cb %+v", cb.ActionCallback.BlockActions[0])
 
 	// TODO this needs to be an object.
 	api = slack.New(oauth)

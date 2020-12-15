@@ -5,28 +5,10 @@ import (
 	"github.com/slack-go/slack"
 
 	"encoding/json"
-	"errors"
 	"fmt"
 	"net/http"
-	"strconv"
-	"strings"
 	"time"
 )
-
-func GenerateActionValue(uid string, token int64) string {
-	return fmt.Sprintf("%s_%d", uid, token)
-}
-
-func ParseActionValue(value string) (uid string, token int64, err error) {
-	arr := strings.Split(value, "_")
-	if len(arr) != 2 {
-		err = errors.New(fmt.Sprintf("Invalid value string '%v'", value))
-		return
-	}
-	uid = arr[0]
-	token, err = strconv.ParseInt(arr[1], 10, 64)
-	return
-}
 
 func listAsBlock(resp *ListResponse) (b []byte) {
 	blocks := make([]slack.Block, len(resp.Users)*3)
