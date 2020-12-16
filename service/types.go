@@ -34,3 +34,13 @@ type ListResponse struct {
 	Times []time.Time
 	Token int64
 }
+
+type RemoveRequest struct {
+	Pos   int
+	Token int64
+}
+
+type RemoveResponse struct {
+	Err   error
+	Token int64
+}

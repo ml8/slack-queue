@@ -99,3 +99,19 @@ func (s *Service) List(req *ListRequest, resp *ListResponse) (err error) {
 	}
 	return
 }
+
+func (s *Service) Remove(req *RemoveRequest, resp *RemoveResponse) (err error) {
+	seq, e := s.q.Remove(req.Pos, req.Token)
+	resp.Token = seq
+	if e != nil {
+		ae, ok := e.(queue.VersionError)
+		if !ok {
+			glog.Errorf("Unknown error on remove at %d with token %d: %+v:", req.Pos, req.Token, ae)
+			err = ae
+			return
+		}
+	}
+	glog.Infof("Remove at %d with token %d, error: %+v", req.Pos, req.Token, err)
+	resp.Err = e
+	return
+}

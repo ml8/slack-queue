@@ -18,7 +18,7 @@ func listAsBlock(resp *ListResponse) (b []byte) {
 		userblock := slack.NewTextBlockObject("mrkdwn", userinfo, false, false)
 		iconblock := slack.NewImageBlockElement(user.Profile.Image24, user.Name)
 		blocks[i*3+1] = slack.NewSectionBlock(userblock, nil, slack.NewAccessory(iconblock))
-		remove := slack.NewButtonBlockElement("remove", GenerateActionValue(user.ID, resp.Token), slack.NewTextBlockObject("plain_text", "Remove", false, false))
+		remove := slack.NewButtonBlockElement("remove", GenerateActionValue(i, resp.Token), slack.NewTextBlockObject("plain_text", "Remove", false, false))
 		blocks[i*3+2] = slack.NewActionBlock(fmt.Sprintf("actions_%v", user.ID), remove)
 	}
 

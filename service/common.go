@@ -12,17 +12,18 @@ import (
 	"time"
 )
 
-func GenerateActionValue(uid string, token int64) string {
-	return fmt.Sprintf("%s_%d", uid, token)
+func GenerateActionValue(pos int, token int64) string {
+	return fmt.Sprintf("%s_%d", pos, token)
 }
 
-func ParseActionValue(value string) (uid string, token int64, err error) {
+func ParseActionValue(value string) (pos int, token int64, err error) {
 	arr := strings.Split(value, "_")
 	if len(arr) != 2 {
 		err = errors.New(fmt.Sprintf("Invalid value string '%v'", value))
 		return
 	}
-	uid = arr[0]
+	pos64, err := strconv.ParseInt(arr[0], 10, strconv.IntSize)
+	pos = int(pos64)
 	token, err = strconv.ParseInt(arr[1], 10, 64)
 	return
 }
