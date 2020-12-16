@@ -60,7 +60,7 @@ func (a *RemoveAction) Handle(action *slack.InteractionCallback, s *Service, w h
 		str = "Remove failed: Queue has been modified since listing."
 	} else {
 		glog.Infof("Successfully removed pos %d, new sequence %d", req.Pos, resp.Token)
-		str = fmt.Sprintf("Ok! Removed position %d\n", req.Pos)
+		str = fmt.Sprintf("Ok! Removed position %d\n", req.Pos+1)
 	}
 	w.WriteHeader(http.StatusOK)
 	_, _, err = a.api.PostMessage("",
