@@ -17,7 +17,7 @@ func dequeueAsBlock(cmd *slack.SlashCommand, resp *DequeueResponse) (b []byte) {
 		userstr = "*Queue is empty.*"
 		timestr = ""
 	} else {
-		userstr = fmt.Sprintf("Ok! Up next is <slack://user?id=%s|%s>", resp.User.ID, resp.User.Name)
+		userstr = fmt.Sprintf("Ok! Up next is <slack://user?id=%s&team=%s|%s>", resp.User.ID, resp.User.TeamID, resp.User.Name)
 		timestr = fmt.Sprintf("Time spent in queue: %v", (time.Now().Sub(resp.Timestamp)))
 	}
 
