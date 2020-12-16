@@ -65,7 +65,7 @@ func (a *RemoveAction) Handle(action *slack.InteractionCallback, s *Service, w h
 	w.WriteHeader(http.StatusOK)
 	_, _, err = a.api.PostMessage("",
 		slack.MsgOptionResponseURL(action.ResponseURL, slack.ResponseTypeEphemeral),
-		slack.MsgOptionDeleteOriginal(action.ResponseURL), // TODO Replace original with new list response and sequence numbers
+		slack.MsgOptionDeleteOriginal(action.ResponseURL), // TODO(#15): Replace original with new list response and sequence numbers
 		slack.MsgOptionText(str, false))
 	if err != nil {
 		glog.Errorf("Error posting reply: %v")
