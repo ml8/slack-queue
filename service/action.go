@@ -11,7 +11,7 @@ const (
 	removeActionName = "remove"
 )
 
-// TODO: There is a ton of duplicate code between the dequeue action and command and
+// TODO(#20): There is a ton of duplicate code between the dequeue action and command and
 // the remove and dequeue actions. This should be refactored.
 
 func DefaultActions(api *slack.Client, perms AdminInterface) (actions map[string]Action) {
