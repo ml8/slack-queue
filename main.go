@@ -17,7 +17,7 @@ import (
 
 var srv *service.Service
 var api *slack.Client
-var perms service.PermissionChecker
+var perms service.AdminInterface
 var cmds map[string]service.Command
 var actions map[string]service.Action
 

@@ -37,8 +37,7 @@ func readFile(fn string) (content string) {
 	return
 }
 
-// TODO rename this? e.g., AdminInterface
-type PermissionChecker interface {
+type AdminInterface interface {
 	IsAdmin(user *slack.User) (ok bool, err error)
 	SendAdminMessage(str string) (err error)
 }
@@ -46,7 +45,7 @@ type PermissionChecker interface {
 const maxChannelCacheAge = "1h"
 const maxRetries = 10
 
-type PermissionCheckerImpl struct {
+type AdminInterfaceImpl struct {
 	adminChan       string
 	api             *slack.Client
 	chanId          string
@@ -56,8 +55,8 @@ type PermissionCheckerImpl struct {
 	retries         int
 }
 
-func MakeChannelPermissionChecker(api *slack.Client, adminChan string) PermissionChecker {
-	return &PermissionCheckerImpl{api: api, adminChan: adminChan, stale: true}
+func MakeChannelPermissionChecker(api *slack.Client, adminChan string) AdminInterface {
+	return &AdminInterfaceImpl{api: api, adminChan: adminChan, stale: true}
 }
 
 // TODO refactor into generic function to handle paginated functions (doesn't
@@ -102,7 +101,7 @@ func getUsersInChannel(api *slack.Client, id string) (users []string, err error)
 	return
 }
 
-func (p *PermissionCheckerImpl) maybeRefresh() (err error) {
+func (p *AdminInterfaceImpl) maybeRefresh() (err error) {
 	if p.retries > maxRetries {
 		glog.Fatalf("Could not retrieve admin users; failing.")
 	}
@@ -142,7 +141,7 @@ func (p *PermissionCheckerImpl) maybeRefresh() (err error) {
 	return
 }
 
-func (p *PermissionCheckerImpl) IsAdmin(user *slack.User) (ok bool, err error) {
+func (p *AdminInterfaceImpl) IsAdmin(user *slack.User) (ok bool, err error) {
 	ok = false
 	err = p.maybeRefresh()
 	if err != nil {
@@ -159,7 +158,7 @@ func (p *PermissionCheckerImpl) IsAdmin(user *slack.User) (ok bool, err error) {
 	return
 }
 
-func (p *PermissionCheckerImpl) SendAdminMessage(msg string) (err error) {
+func (p *AdminInterfaceImpl) SendAdminMessage(msg string) (err error) {
 	err = p.maybeRefresh()
 	if err != nil {
 		return

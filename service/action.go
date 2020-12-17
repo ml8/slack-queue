@@ -6,7 +6,7 @@ import (
 	"net/http"
 )
 
-func DefaultActions(api *slack.Client, perms PermissionChecker) (actions map[string]Action) {
+func DefaultActions(api *slack.Client, perms AdminInterface) (actions map[string]Action) {
 	actions = make(map[string]Action)
 	actions["remove"] = &RemoveAction{api, perms}
 	return
@@ -22,5 +22,5 @@ type Action interface {
 
 type RemoveAction struct {
 	api   *slack.Client
-	perms PermissionChecker
+	perms AdminInterface
 }
