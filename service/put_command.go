@@ -51,6 +51,11 @@ func (c *PutCommand) Handle(cmd *slack.SlashCommand, s *Service, w http.Response
 	w.Header().Set("Content-Type", "application/json")
 	w.Write(b)
 
+	if resp.Ok {
+		// Don't post admin if already in queue.
+		return
+	}
+
 	str := fmt.Sprintf("%s added to queue in position %d", userToLink(resp.User), resp.Pos+1)
 	cerr := c.perms.SendAdminMessage(str)
 	if cerr != nil {
