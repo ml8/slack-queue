@@ -14,7 +14,7 @@ func listAsBlock(resp *ListResponse) (b []byte) {
 	blocks := make([]slack.Block, len(resp.Users)*3)
 	for i, user := range resp.Users {
 		blocks[i*3] = slack.NewDividerBlock()
-		userinfo := fmt.Sprintf("*%d:* <slack://user?id=%s&team=%s|%s>\nwait time: %s", i+1, user.ID, user.TeamID, user.Name, (time.Now().Sub(resp.Times[i])).String())
+		userinfo := fmt.Sprintf("*%d:* %s\nwait time: %s", i+1, userToLink(user), (time.Now().Sub(resp.Times[i])).String())
 		userblock := slack.NewTextBlockObject("mrkdwn", userinfo, false, false)
 		iconblock := slack.NewImageBlockElement(user.Profile.Image24, user.Name)
 		blocks[i*3+1] = slack.NewSectionBlock(userblock, nil, slack.NewAccessory(iconblock))

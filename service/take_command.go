@@ -17,7 +17,7 @@ func dequeueAsBlock(cmd *slack.SlashCommand, resp *DequeueResponse) (b []byte) {
 		userstr = "*Queue is empty.*"
 		timestr = ""
 	} else {
-		userstr = fmt.Sprintf("Ok! Up next is <slack://user?id=%s&team=%s|%s>", resp.User.ID, resp.User.TeamID, resp.User.Name)
+		userstr = fmt.Sprintf("Ok! Up next is %s.", userToLink(resp.User))
 		timestr = fmt.Sprintf("Time spent in queue: %v", (time.Now().Sub(resp.Timestamp)))
 	}
 
@@ -31,13 +31,6 @@ func dequeueAsBlock(cmd *slack.SlashCommand, resp *DequeueResponse) (b []byte) {
 	if err != nil {
 		glog.Fatalf("Error marshalling json: %v", err)
 	}
-	return
-}
-
-func buildDequeueAdminMessage(cmd *slack.SlashCommand, resp *DequeueResponse) (blocks []slack.Block) {
-	wt := time.Now().Sub(resp.Timestamp)
-	str := fmt.Sprintf("%s dequeued %s (wait time %v)", cmd.UserName, resp.User.Name, wt)
-	blocks = []slack.Block{slack.NewContextBlock("context", slack.NewTextBlockObject("mrkdwn", str, false, false))}
 	return
 }
 
@@ -72,7 +65,9 @@ func (c *TakeCommand) Handle(cmd *slack.SlashCommand, s *Service, w http.Respons
 	w.Header().Set("Content-Type", "application/json")
 	w.Write(b)
 
-	cerr := c.perms.SendAdminMessage(buildDequeueAdminMessage(cmd, resp)...)
+	wt := time.Now().Sub(resp.Timestamp)
+	str := fmt.Sprintf("%s dequeued %s (wait time %v)", cmd.UserName, userToLink(resp.User), wt)
+	cerr := c.perms.SendAdminMessage(str)
 	if cerr != nil {
 		glog.Errorf("Error sending admin message for dequeue of %v by %v: %v", resp.User.Name, cmd.UserName, cerr)
 	}

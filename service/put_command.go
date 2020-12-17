@@ -31,12 +31,6 @@ func enqueueAsBlock(cmd *slack.SlashCommand, resp *EnqueueResponse) (b []byte) {
 	return
 }
 
-func buildEnqueueAdminMessage(resp *EnqueueResponse) (blocks []slack.Block) {
-	str := fmt.Sprintf("%s added to queue in position %d", resp.User.Name, resp.Pos+1)
-	blocks = []slack.Block{slack.NewContextBlock("context", slack.NewTextBlockObject("mrkdwn", str, false, false))}
-	return blocks
-}
-
 func (c *PutCommand) Handle(cmd *slack.SlashCommand, s *Service, w http.ResponseWriter) (err error) {
 	// TODO Send message to auth channel
 	req := &EnqueueRequest{}
@@ -57,7 +51,8 @@ func (c *PutCommand) Handle(cmd *slack.SlashCommand, s *Service, w http.Response
 	w.Header().Set("Content-Type", "application/json")
 	w.Write(b)
 
-	cerr := c.perms.SendAdminMessage(buildEnqueueAdminMessage(resp)...)
+	str := fmt.Sprintf("%s added to queue in position %d", userToLink(resp.User), resp.Pos+1)
+	cerr := c.perms.SendAdminMessage(str)
 	if cerr != nil {
 		glog.Errorf("Error sending admin message for enqueue of %v: %v", cmd.UserName, cerr)
 	}
