@@ -40,7 +40,7 @@ func readFile(fn string) (content string) {
 // TODO rename this? e.g., AdminInterface
 type PermissionChecker interface {
 	IsAdmin(user *slack.User) (ok bool, err error)
-	SendAdminMessage(blocks ...slack.Block) (err error)
+	SendAdminMessage(str string) (err error)
 }
 
 const maxChannelCacheAge = "1h"
@@ -159,11 +159,17 @@ func (p *PermissionCheckerImpl) IsAdmin(user *slack.User) (ok bool, err error) {
 	return
 }
 
-func (p *PermissionCheckerImpl) SendAdminMessage(blocks ...slack.Block) (err error) {
+func (p *PermissionCheckerImpl) SendAdminMessage(msg string) (err error) {
 	err = p.maybeRefresh()
 	if err != nil {
 		return
 	}
-	_, _, err = p.api.PostMessage(p.chanId, slack.MsgOptionBlocks(blocks...), slack.MsgOptionAsUser(true))
+	_, _, err = p.api.PostMessage(p.chanId,
+		slack.MsgOptionText(msg, false),
+		slack.MsgOptionAsUser(true))
 	return
+}
+
+func userToLink(user *slack.User) string {
+	return fmt.Sprintf("<slack://user?id=%s&team=%s|%s>", user.ID, user.TeamID, user.Name)
 }
