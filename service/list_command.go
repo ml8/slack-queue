@@ -10,8 +10,14 @@ import (
 	"time"
 )
 
-func listAsBlock(resp *ListResponse) (b []byte) {
-	blocks := make([]slack.Block, len(resp.Users)*3)
+func listAsBlock(resp *ListResponse) (blocks []slack.Block) {
+	if len(resp.Users) == 0 {
+		blocks = make([]slack.Block, 1)
+		empty := slack.NewTextBlockObject("mrkdwn", "No users in queue.", false, false)
+		blocks[0] = slack.NewSectionBlock(empty, nil, nil)
+		return
+	}
+	blocks = make([]slack.Block, len(resp.Users)*3)
 	for i, user := range resp.Users {
 		blocks[i*3] = slack.NewDividerBlock()
 		userinfo := fmt.Sprintf("*%d:* %s\nwait time: %s", i+1, userToLink(user), (time.Now().Sub(resp.Times[i])).String())
@@ -22,12 +28,6 @@ func listAsBlock(resp *ListResponse) (b []byte) {
 		blocks[i*3+2] = slack.NewActionBlock(fmt.Sprintf("actions_%v", user.ID), remove)
 	}
 
-	msg := slack.NewBlockMessage(blocks...)
-	b, err := json.MarshalIndent(msg, "", "  ")
-	if err != nil {
-		glog.Fatalf("Error marshalling json: %v", err)
-	}
-	glog.V(2).Infof("List response:\n%v", string(b))
 	return
 }
 
@@ -54,7 +54,13 @@ func (c *ListCommand) Handle(cmd *slack.SlashCommand, s *Service, w http.Respons
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
-	b := listAsBlock(&resp)
+	blocks := listAsBlock(&resp)
+	msg := slack.NewBlockMessage(blocks...)
+	b, err := json.MarshalIndent(msg, "", "  ")
+	if err != nil {
+		glog.Fatalf("Error marshalling json: %v", err)
+	}
+	glog.V(2).Infof("List response:\n%v", string(b))
 	w.Header().Set("Content-Type", "application/json")
 	w.Write(b)
 	return

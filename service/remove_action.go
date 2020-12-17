@@ -54,21 +54,34 @@ func (a *RemoveAction) Handle(action *slack.InteractionCallback, s *Service, w h
 		return
 	}
 
+	w.WriteHeader(http.StatusOK)
+
+	// Post admin message
 	var str string
 	if resp.Err != nil {
 		glog.Infof("Stale remove for token %d, current token %d", req.Token, resp.Token)
-		str = "Remove failed: Queue has been modified since listing."
+		// str = "Remove failed: Queue has been modified since listing."
 	} else {
 		glog.Infof("Successfully removed pos %d, new sequence %d", req.Pos, resp.Token)
-		str = fmt.Sprintf("Ok! Removed position %d\n", req.Pos+1)
+		str = fmt.Sprintf("%s removed position %d\n", userToLink(&action.User), req.Pos+1)
 	}
-	w.WriteHeader(http.StatusOK)
+	a.perms.SendAdminMessage(str)
+
+	// Replace list with updated state.
+	lreq := &ListRequest{}
+	lresp := &ListResponse{}
+	err = s.List(lreq, lresp)
+	if err != nil {
+		glog.Errorf("Error getting queue state: %v", err)
+		return
+	}
 	_, _, err = a.api.PostMessage("",
 		slack.MsgOptionResponseURL(action.ResponseURL, slack.ResponseTypeEphemeral),
-		slack.MsgOptionDeleteOriginal(action.ResponseURL), // TODO(#15): Replace original with new list response and sequence numbers
-		slack.MsgOptionText(str, false))
+		slack.MsgOptionReplaceOriginal(action.ResponseURL),
+		slack.MsgOptionBlocks(listAsBlock(lresp)...))
 	if err != nil {
 		glog.Errorf("Error posting reply: %v")
 	}
+
 	return
 }
