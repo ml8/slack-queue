@@ -6,9 +6,10 @@ import (
 
 	"fmt"
 	"net/http"
+	"time"
 )
 
-func (a *RemoveAction) Handle(action *slack.InteractionCallback, s *Service, w http.ResponseWriter) {
+func (a *TakeAction) Handle(action *slack.InteractionCallback, s *Service, w http.ResponseWriter) {
 	user := &action.User
 	ok, err := a.perms.IsAdmin(user)
 	if err != nil {
@@ -27,7 +28,7 @@ func (a *RemoveAction) Handle(action *slack.InteractionCallback, s *Service, w h
 	var found bool
 	// Remove is a block action and should be in the actions for this callback.
 	for _, act := range action.ActionCallback.BlockActions {
-		if ParseAction(act.ActionID) == removeActionName {
+		if ParseAction(act.ActionID) == takeActionName {
 			pos, token, err = ParseActionValue(act.Value)
 			found = true
 			if err != nil {
@@ -40,34 +41,39 @@ func (a *RemoveAction) Handle(action *slack.InteractionCallback, s *Service, w h
 	}
 
 	if !found {
-		glog.Errorf("Remove action not found for remove callback!")
+		glog.Errorf("Take action not found for remove callback!")
 	}
 
-	glog.Infof("Removing position %d with token %d", pos, token)
+	glog.Infof("Dequeuing position %d with token %d", pos, token)
 
-	req := &RemoveRequest{Pos: pos, Token: token}
-	resp := &RemoveResponse{}
-	err = s.Remove(req, resp)
+	req := &DequeueRequest{}
+	resp := &DequeueResponse{}
+
+	req.Place = pos
+
+	err = s.Dequeue(req, resp)
 	if err != nil {
-		glog.Errorf("Unexpected error for remove: %v", err)
+		glog.Errorf("Error dequeueing a request from %v (%v): %v", action.User.ID, action.User.Name, err)
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
 
 	w.WriteHeader(http.StatusOK)
 
-	// Post admin message
-	var str string
-	if resp.Err != nil {
-		glog.Infof("Stale remove for token %d, current token %d", req.Token, resp.Token)
-		// str = "Remove failed: Queue has been modified since listing."
-	} else {
-		glog.Infof("Successfully removed pos %d, new sequence %d", req.Pos, resp.Token)
-		str = fmt.Sprintf("%s removed position %d\n", userToLink(&action.User), req.Pos+1)
-	}
-	a.perms.SendAdminMessage(str)
-
 	// Replace list with updated state.
 	updateListInUI(action, s, a.api)
+
+	// If no user was dequeued, stop.
+	if resp.User == nil {
+		return
+	}
+
+	wt := time.Now().Sub(resp.Timestamp)
+	str := fmt.Sprintf("%s dequeued %s (wait time %v)", userToLink(&action.User), userToLink(resp.User), wt)
+	cerr := a.perms.SendAdminMessage(str)
+	if cerr != nil {
+		glog.Errorf("Error sending admin message for dequeue of %v by %v: %v", resp.User.Name, action.User.Name, cerr)
+	}
+
 	return
 }

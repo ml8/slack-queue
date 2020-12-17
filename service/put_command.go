@@ -51,7 +51,7 @@ func (c *PutCommand) Handle(cmd *slack.SlashCommand, s *Service, w http.Response
 	w.Header().Set("Content-Type", "application/json")
 	w.Write(b)
 
-	if resp.Ok {
+	if !resp.Ok {
 		// Don't post admin if already in queue.
 		return
 	}
