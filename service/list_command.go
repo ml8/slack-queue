@@ -25,10 +25,28 @@ func listAsBlock(resp *ListResponse) (blocks []slack.Block) {
 		iconblock := slack.NewImageBlockElement(user.Profile.Image24, user.Name)
 		blocks[i*3+1] = slack.NewSectionBlock(userblock, nil, slack.NewAccessory(iconblock))
 		remove := slack.NewButtonBlockElement("remove", GenerateActionValue(i, resp.Token), slack.NewTextBlockObject("plain_text", "Remove", false, false))
-		blocks[i*3+2] = slack.NewActionBlock(fmt.Sprintf("actions_%v", user.ID), remove)
+		take := slack.NewButtonBlockElement("take", GenerateActionValue(i, resp.Token), slack.NewTextBlockObject("plain_text", "Dequeue", false, false))
+		blocks[i*3+2] = slack.NewActionBlock(fmt.Sprintf("actions_%v", user.ID), remove, take)
 	}
 
 	return
+}
+
+func updateListInUI(action *slack.InteractionCallback, s *Service, api *slack.Client) {
+	lreq := &ListRequest{}
+	lresp := &ListResponse{}
+	err := s.List(lreq, lresp)
+	if err != nil {
+		glog.Errorf("Error getting queue state: %v", err)
+		return
+	}
+	_, _, err = api.PostMessage("",
+		slack.MsgOptionResponseURL(action.ResponseURL, slack.ResponseTypeEphemeral),
+		slack.MsgOptionReplaceOriginal(action.ResponseURL),
+		slack.MsgOptionBlocks(listAsBlock(lresp)...))
+	if err != nil {
+		glog.Errorf("Error posting reply: %v")
+	}
 }
 
 func (c *ListCommand) Handle(cmd *slack.SlashCommand, s *Service, w http.ResponseWriter) (err error) {

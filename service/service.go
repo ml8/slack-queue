@@ -64,12 +64,19 @@ func (s *Service) Enqueue(req *EnqueueRequest, resp *EnqueueResponse) (err error
 }
 
 func (s *Service) Dequeue(req *DequeueRequest, resp *DequeueResponse) (err error) {
-	// TODO use Place to take from deeper in the queue.
-	el, seq, e := s.q.TakeFront()
+	var el queue.Element
+	var seq int64
+	var e error
+	if req.Place == 0 {
+		el, seq, e = s.q.TakeFront()
+	} else {
+		el, seq, e = s.q.Take(req.Place, req.Token)
+	}
 	if e != nil {
-		glog.Infof("Queue empty (v %v)", seq)
+		resp.Token = seq
 		resp.User = nil
 		err = nil
+		glog.Infof("Error taking %d from queue: %v", req.Place, e)
 		return
 	}
 	glog.Infof("Dequeueing %v (v %v)", el.Id, seq)

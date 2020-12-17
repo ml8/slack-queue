@@ -6,9 +6,18 @@ import (
 	"net/http"
 )
 
+const (
+	takeActionName   = "take"
+	removeActionName = "remove"
+)
+
+// TODO: There is a ton of duplicate code between the dequeue action and command and
+// the remove and dequeue actions. This should be refactored.
+
 func DefaultActions(api *slack.Client, perms AdminInterface) (actions map[string]Action) {
 	actions = make(map[string]Action)
-	actions["remove"] = &RemoveAction{api, perms}
+	actions[removeActionName] = &RemoveAction{api, perms}
+	actions[takeActionName] = &TakeAction{api, perms}
 	return
 }
 
@@ -21,6 +30,11 @@ type Action interface {
 }
 
 type RemoveAction struct {
+	api   *slack.Client
+	perms AdminInterface
+}
+
+type TakeAction struct {
 	api   *slack.Client
 	perms AdminInterface
 }

@@ -19,11 +19,13 @@ type EnqueueResponse struct {
 
 type DequeueRequest struct {
 	Place int
+	Token int64
 }
 
 type DequeueResponse struct {
 	User      *slack.User
 	Timestamp time.Time
+	Token     int64
 }
 
 type ListRequest struct {
