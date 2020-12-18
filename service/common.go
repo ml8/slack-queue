@@ -12,7 +12,7 @@ import (
 )
 
 func GenerateActionValue(pos int, token int64) string {
-	return fmt.Sprintf("%s_%d", pos, token)
+	return fmt.Sprintf("%d_%d", pos, token)
 }
 
 func ParseActionValue(value string) (pos int, token int64, err error) {
