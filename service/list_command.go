@@ -32,7 +32,7 @@ func listAsBlock(resp *ListResponse) (blocks []slack.Block) {
 	return
 }
 
-func updateListInUI(action *slack.InteractionCallback, s *Service, api *slack.Client) {
+func updateListInUI(action *slack.InteractionCallback, s *QueueService, api *slack.Client) {
 	lreq := &ListRequest{}
 	lresp := &ListResponse{}
 	err := s.List(lreq, lresp)
@@ -49,7 +49,7 @@ func updateListInUI(action *slack.InteractionCallback, s *Service, api *slack.Cl
 	}
 }
 
-func (c *ListCommand) Handle(cmd *slack.SlashCommand, s *Service, w http.ResponseWriter) (err error) {
+func (c *ListCommand) Handle(cmd *slack.SlashCommand, s *QueueService, w http.ResponseWriter) (err error) {
 	// Check permission to list queue.
 	user := &slack.User{ID: cmd.UserID}
 	ok, err := c.perms.IsAdmin(user)

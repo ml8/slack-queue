@@ -31,7 +31,7 @@ func enqueueAsBlock(cmd *slack.SlashCommand, resp *EnqueueResponse) (b []byte) {
 	return
 }
 
-func (c *PutCommand) Handle(cmd *slack.SlashCommand, s *Service, w http.ResponseWriter) (err error) {
+func (c *PutCommand) Handle(cmd *slack.SlashCommand, s *QueueService, w http.ResponseWriter) (err error) {
 	// TODO Send message to auth channel
 	req := &EnqueueRequest{}
 	resp := &EnqueueResponse{}

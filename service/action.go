@@ -26,7 +26,7 @@ func ParseAction(actionID string) string {
 }
 
 type Action interface {
-	Handle(action *slack.InteractionCallback, s *Service, w http.ResponseWriter)
+	Handle(action *slack.InteractionCallback, s *QueueService, w http.ResponseWriter)
 }
 
 type RemoveAction struct {
