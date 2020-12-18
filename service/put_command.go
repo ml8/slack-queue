@@ -39,6 +39,7 @@ func (c *PutCommand) Handle(cmd *slack.SlashCommand, s *Service, w http.Response
 	req.User = &slack.User{}
 	req.User.ID = cmd.UserID
 	req.User.Name = cmd.UserName
+	req.User.TeamID = cmd.TeamID
 
 	err = s.Enqueue(req, resp)
 	if err != nil {

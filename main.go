@@ -30,7 +30,6 @@ var (
 	adminChannel  string // Channel containing admin users
 	cmdUrl        string // URL to receive slash commands
 	actionUrl     string // URL to receive interactions
-	debug         bool   // Debug mode (for development) TODO: remove
 )
 
 func forwardCmd(w http.ResponseWriter, r *http.Request) {
@@ -115,12 +114,6 @@ func main() {
 	flag.StringVar(&adminChannel, "authChannel", "", "Channel containing admin users")
 	flag.StringVar(&cmdUrl, "cmdUrl", "/slash", "URL to receive slash commands (e.g., '/slash' or '/receive', etc.)")
 	flag.StringVar(&actionUrl, "actionUrl", "/action", "URL to receive actions")
-	flag.BoolVar(&debug, "debug", false, "debug mode: log to stderr at vv")
-
-	if debug {
-		flag.Set("logtostderr", "true")
-		flag.Set("v", "2")
-	}
 
 	flag.Parse()
 
