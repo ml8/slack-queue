@@ -9,6 +9,17 @@ import (
 	"time"
 )
 
+func sendMatchDM(user *slack.User, admin *slack.User, api *slack.Client) (err error) {
+	txt := fmt.Sprintf("Hello %s! You've been matched with %s.", user.Name, admin.Name)
+	params := &slack.OpenConversationParameters{Users: []string{user.ID, admin.ID}}
+	c, _, _, err := api.OpenConversation(params)
+	if err != nil {
+		return
+	}
+	_, _, err = api.PostMessage(c.ID, slack.MsgOptionText(txt, false))
+	return
+}
+
 func (a *TakeAction) Handle(action *slack.InteractionCallback, s *Service, w http.ResponseWriter) {
 	user := &action.User
 	ok, err := a.perms.IsAdmin(user)
@@ -66,6 +77,11 @@ func (a *TakeAction) Handle(action *slack.InteractionCallback, s *Service, w htt
 	// If no user was dequeued, stop.
 	if resp.User == nil {
 		return
+	}
+
+	err = sendMatchDM(resp.User, user, a.api)
+	if err != nil {
+		glog.Errorf("Error sending match message: %+v", err)
 	}
 
 	wt := time.Now().Sub(resp.Timestamp)
