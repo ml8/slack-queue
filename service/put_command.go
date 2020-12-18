@@ -41,6 +41,9 @@ func (c *PutCommand) Handle(cmd *slack.SlashCommand, s *Service, w http.Response
 	req.User.Name = cmd.UserName
 	req.User.TeamID = cmd.TeamID
 
+	glog.Infof("%+v", cmd)
+	req.Metadata = cmd.Text
+
 	err = s.Enqueue(req, resp)
 	if err != nil {
 		glog.Errorf("Error enqueueing %v (%v): %v", cmd.UserID, cmd.UserName, err)
@@ -57,7 +60,7 @@ func (c *PutCommand) Handle(cmd *slack.SlashCommand, s *Service, w http.Response
 		return
 	}
 
-	str := fmt.Sprintf("%s added to queue in position %d", userToLink(resp.User), resp.Pos+1)
+	str := fmt.Sprintf("%s added to queue in position %d for %s", userToLink(resp.User), resp.Pos+1, cmd.Text)
 	cerr := c.perms.SendAdminMessage(str)
 	if cerr != nil {
 		glog.Errorf("Error sending admin message for enqueue of %v: %v", cmd.UserName, cerr)

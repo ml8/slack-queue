@@ -7,11 +7,13 @@ import (
 )
 
 type EnqueueRequest struct {
-	User *slack.User
+	User     *slack.User
+	Metadata string
 }
 
 type EnqueueResponse struct {
 	User      *slack.User
+	Metadata  string
 	Ok        bool
 	Pos       int
 	Timestamp time.Time
@@ -24,6 +26,7 @@ type DequeueRequest struct {
 
 type DequeueResponse struct {
 	User      *slack.User
+	Metadata  string
 	Timestamp time.Time
 	Token     int64
 }
@@ -32,9 +35,10 @@ type ListRequest struct {
 }
 
 type ListResponse struct {
-	Users []*slack.User
-	Times []time.Time
-	Token int64
+	Users    []*slack.User
+	Metadata []string
+	Times    []time.Time
+	Token    int64
 }
 
 type RemoveRequest struct {
