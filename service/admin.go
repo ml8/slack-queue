@@ -12,10 +12,29 @@ type AdminInterface interface {
 	SendAdminMessage(str string) (err error)
 }
 
+func AdminInterfaceFromChannel(api *slack.Client, channel string) AdminInterface {
+	if channel == "" {
+		return NoopAdminInterface{}
+	} else {
+		return MakeChannelAdminInterface(api, channel)
+	}
+}
+
+type NoopAdminInterface struct {
+}
+
+func (a NoopAdminInterface) IsAdmin(user *slack.User) (ok bool, err error) {
+	return true, nil
+}
+
+func (a NoopAdminInterface) SendAdminMessage(str string) (err error) {
+	return
+}
+
 const maxChannelCacheAge = "1h"
 const maxRetries = 10
 
-type AdminInterfaceImpl struct {
+type ChannelAdminInterface struct {
 	adminChan       string
 	api             *slack.Client
 	chanId          string
@@ -25,8 +44,8 @@ type AdminInterfaceImpl struct {
 	retries         int
 }
 
-func MakeChannelPermissionChecker(api *slack.Client, adminChan string) AdminInterface {
-	return &AdminInterfaceImpl{api: api, adminChan: adminChan, stale: true}
+func MakeChannelAdminInterface(api *slack.Client, adminChan string) AdminInterface {
+	return &ChannelAdminInterface{api: api, adminChan: adminChan, stale: true}
 }
 
 // TODO refactor into generic function to handle paginated functions (doesn't
@@ -71,7 +90,7 @@ func getUsersInChannel(api *slack.Client, id string) (users []string, err error)
 	return
 }
 
-func (p *AdminInterfaceImpl) maybeRefresh() (err error) {
+func (p *ChannelAdminInterface) maybeRefresh() (err error) {
 	if p.retries > maxRetries {
 		glog.Fatalf("Could not retrieve admin users; failing.")
 	}
@@ -111,7 +130,7 @@ func (p *AdminInterfaceImpl) maybeRefresh() (err error) {
 	return
 }
 
-func (p *AdminInterfaceImpl) IsAdmin(user *slack.User) (ok bool, err error) {
+func (p *ChannelAdminInterface) IsAdmin(user *slack.User) (ok bool, err error) {
 	ok = false
 	err = p.maybeRefresh()
 	if err != nil {
@@ -128,7 +147,7 @@ func (p *AdminInterfaceImpl) IsAdmin(user *slack.User) (ok bool, err error) {
 	return
 }
 
-func (p *AdminInterfaceImpl) SendAdminMessage(msg string) (err error) {
+func (p *ChannelAdminInterface) SendAdminMessage(msg string) (err error) {
 	err = p.maybeRefresh()
 	if err != nil {
 		return

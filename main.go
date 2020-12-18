@@ -1,6 +1,7 @@
 package main
 
 import (
+	"github.com/matthewlang/slack-queue/server"
 	"github.com/matthewlang/slack-queue/service"
 	"github.com/slack-go/slack"
 
@@ -8,6 +9,7 @@ import (
 
 	"encoding/json"
 	"flag"
+	"fmt"
 	"io"
 	"io/ioutil"
 	"net/http"
@@ -15,21 +17,19 @@ import (
 	"strings"
 )
 
-var srv *service.Service
 var api *slack.Client
-var perms service.AdminInterface
-var cmds map[string]service.Command
-var actions map[string]service.Action
+var servers *server.ServerGroup
 
 // Flags
 var (
-	oauth         string // OAuth token
-	signingSecret string // Application signing secret
-	clientSecret  string // Application client secret
-	port          string // Port to listen on
-	adminChannel  string // Channel containing admin users
-	cmdUrl        string // URL to receive slash commands
-	actionUrl     string // URL to receive interactions
+	oauth             string // OAuth token
+	signingSecret     string // Application signing secret
+	clientSecret      string // Application client secret
+	port              string // Port to listen on
+	cmdUrl            string // URL to receive slash commands
+	actionUrl         string // URL to receive interactions
+	authChannel       string // Channel of members permitted to create queues.
+	managementCommand string // Command to manage queues.
 )
 
 func forwardCmd(w http.ResponseWriter, r *http.Request) {
@@ -46,15 +46,25 @@ func forwardCmd(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusUnauthorized)
 		return
 	}
+	glog.V(1).Infof("Command parsed as %v for %v", s.Command, s)
 
-	cmd, ok := cmds[s.Command]
-	glog.Infof("Command parsed as %v for %v", s.Command, s)
-	if !ok {
-		w.WriteHeader(http.StatusNotFound)
+	if s.Command == managementCommand {
+		servers.Manage(&s, w)
 		return
 	}
 
-	cmd.Handle(&s, srv, w)
+	srv, ok := servers.Lookup(s.ChannelID)
+	if !ok {
+		glog.Infof("No server for channel %s (%s)", s.ChannelID, s.ChannelName)
+		_, _, _ = api.PostMessage(s.ChannelID,
+			slack.MsgOptionText(
+				fmt.Sprintf("No queue exists for channel %s, use %s to create one.", s.ChannelName, managementCommand), false),
+			slack.MsgOptionPostEphemeral(s.UserID))
+		w.WriteHeader(http.StatusOK)
+		return
+	}
+	srv.ForwardCommand(&s, w)
+
 }
 
 func forwardAction(w http.ResponseWriter, r *http.Request) {
@@ -88,22 +98,15 @@ func forwardAction(w http.ResponseWriter, r *http.Request) {
 
 	glog.V(2).Infof("Action callback:\n%v", js)
 
-	var handler service.Action
-	ok := false
-	// Only looking for block actions; right now at most one per payload.
-	for _, act := range cb.ActionCallback.BlockActions {
-		handler, ok = actions[service.ParseAction(act.ActionID)]
-		if ok {
-			break
-		}
-	}
-
+	// TODO: is this the correct channel, when is cb.Channel and
+	// cb.Container.Channel different?
+	srv, ok := servers.Lookup(cb.Channel.ID)
 	if !ok {
-		glog.Errorf("Unknown action type: %v", cb.ActionID)
+		glog.Errorf("Received interaction for unserved channel %s (%s)", cb.Channel.ID, cb.Channel.Name)
 		w.WriteHeader(http.StatusNotFound)
 		return
 	}
-	handler.Handle(&cb, srv, w)
+	srv.ForwardAction(&cb, w)
 }
 
 func main() {
@@ -111,20 +114,30 @@ func main() {
 	flag.StringVar(&signingSecret, "ssecret", "", "Application signing secret")
 	flag.StringVar(&clientSecret, "csecret", "", "Application client secret")
 	flag.StringVar(&port, "p", ":1000", "Port to listen on")
-	flag.StringVar(&adminChannel, "authChannel", "", "Channel containing admin users")
 	flag.StringVar(&cmdUrl, "cmdUrl", "/slash", "URL to receive slash commands (e.g., '/slash' or '/receive', etc.)")
 	flag.StringVar(&actionUrl, "actionUrl", "/action", "URL to receive actions")
+	flag.StringVar(&authChannel, "authChannel", "", "Channel authorized to create queues, empty means anyone can create a queue.")
+	flag.StringVar(&managementCommand, "managementCommand", "queue", "Command used to manage queues.")
 
 	flag.Parse()
 
 	glog.Infof("Starting on port %v ...", port)
 
-	// TODO this needs to be an object.
+	if managementCommand == "" {
+		glog.Fatalf("Must supply a management command.")
+	}
+
+	if managementCommand[0] != '/' {
+		managementCommand = "/" + managementCommand
+	}
+	glog.Infof("Using %s for management commands.", managementCommand)
+
 	api = slack.New(oauth)
-	srv = service.InMemoryTS(api)
-	perms = service.MakeChannelPermissionChecker(api, adminChannel)
-	cmds = service.DefaultCommands(api, perms)
-	actions = service.DefaultActions(api, perms)
+
+	servers = server.CreateServerGroup(
+		api,
+		service.AdminInterfaceFromChannel(api, authChannel),
+		managementCommand)
 
 	http.HandleFunc(cmdUrl, forwardCmd)
 	http.HandleFunc(actionUrl, forwardAction)
