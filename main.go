@@ -50,15 +50,17 @@ func forwardCmd(w http.ResponseWriter, r *http.Request) {
 
 	if s.Command == managementCommand {
 		servers.Manage(&s, w)
+		return
 	}
 
 	srv, ok := servers.Lookup(s.ChannelID)
 	if !ok {
-		glog.Infof("No server for channel %s (%s), creating...", s.ChannelID, s.ChannelName)
+		glog.Infof("No server for channel %s (%s)", s.ChannelID, s.ChannelName)
 		_, _, _ = api.PostMessage(s.ChannelID,
 			slack.MsgOptionText(
 				fmt.Sprintf("No queue exists for channel %s, use %s to create one.", s.ChannelName, managementCommand), false),
 			slack.MsgOptionPostEphemeral(s.UserID))
+		w.WriteHeader(http.StatusOK)
 		return
 	}
 	srv.ForwardCommand(&s, w)
@@ -132,14 +134,10 @@ func main() {
 
 	api = slack.New(oauth)
 
-	var admin service.AdminInterface
-	if authChannel != "" {
-		admin = service.MakeChannelAdminInterface(api, authChannel)
-	} else {
-		admin = service.NoopAdminInterface{}
-	}
-
-	servers = server.CreateServerGroup(api, admin)
+	servers = server.CreateServerGroup(
+		api,
+		service.AdminInterfaceFromChannel(api, authChannel),
+		managementCommand)
 
 	http.HandleFunc(cmdUrl, forwardCmd)
 	http.HandleFunc(actionUrl, forwardAction)

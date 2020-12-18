@@ -12,8 +12,13 @@ type AdminInterface interface {
 	SendAdminMessage(str string) (err error)
 }
 
-const maxChannelCacheAge = "1h"
-const maxRetries = 10
+func AdminInterfaceFromChannel(api *slack.Client, channel string) AdminInterface {
+	if channel == "" {
+		return NoopAdminInterface{}
+	} else {
+		return MakeChannelAdminInterface(api, channel)
+	}
+}
 
 type NoopAdminInterface struct {
 }
@@ -25,6 +30,9 @@ func (a NoopAdminInterface) IsAdmin(user *slack.User) (ok bool, err error) {
 func (a NoopAdminInterface) SendAdminMessage(str string) (err error) {
 	return
 }
+
+const maxChannelCacheAge = "1h"
+const maxRetries = 10
 
 type ChannelAdminInterface struct {
 	adminChan       string
