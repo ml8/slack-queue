@@ -36,7 +36,7 @@ func CreateServerGroup(api *slack.Client, admin service.AdminInterface, command 
 
 type Server struct {
 	api      *slack.Client
-	service  *service.Service
+	service  *service.QueueService
 	admin    service.AdminInterface
 	commands map[string]service.Command
 	actions  map[string]service.Action

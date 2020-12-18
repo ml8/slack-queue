@@ -37,7 +37,7 @@ func dequeueAsBlock(cmd *slack.SlashCommand, resp *DequeueResponse) (b []byte) {
 	return
 }
 
-func (c *TakeCommand) Handle(cmd *slack.SlashCommand, s *Service, w http.ResponseWriter) (err error) {
+func (c *TakeCommand) Handle(cmd *slack.SlashCommand, s *QueueService, w http.ResponseWriter) (err error) {
 	// Check permission to list queue.
 	user := &slack.User{ID: cmd.UserID, Name: cmd.UserName, TeamID: cmd.TeamID}
 	ok, err := c.perms.IsAdmin(user)

@@ -8,7 +8,7 @@ import (
 	"net/http"
 )
 
-func (a *RemoveAction) Handle(action *slack.InteractionCallback, s *Service, w http.ResponseWriter) {
+func (a *RemoveAction) Handle(action *slack.InteractionCallback, s *QueueService, w http.ResponseWriter) {
 	user := &action.User
 	ok, err := a.perms.IsAdmin(user)
 	if err != nil {

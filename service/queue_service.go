@@ -22,24 +22,24 @@ func (ul *UserLookupImpl) Lookup(id string) (user *slack.User, err error) {
 	return
 }
 
-type Service struct {
+type QueueService struct {
 	q *queue.VersionedQueue
 	u UserLookup
 }
 
-func InMemoryTS(api *slack.Client) *Service {
+func InMemoryTS(api *slack.Client) *QueueService {
 	u := &UserLookupImpl{api}
 	return TS(u, nil)
 }
 
-func TS(u UserLookup, persist queue.Persister) *Service {
-	s := &Service{}
+func TS(u UserLookup, persist queue.Persister) *QueueService {
+	s := &QueueService{}
 	s.q = queue.VQ(persist)
 	s.u = u
 	return s
 }
 
-func (s *Service) Enqueue(req *EnqueueRequest, resp *EnqueueResponse) (err error) {
+func (s *QueueService) Enqueue(req *EnqueueRequest, resp *EnqueueResponse) (err error) {
 	user := req.User
 	resp.User = user
 	now := time.Now()
@@ -63,7 +63,7 @@ func (s *Service) Enqueue(req *EnqueueRequest, resp *EnqueueResponse) (err error
 	return
 }
 
-func (s *Service) Dequeue(req *DequeueRequest, resp *DequeueResponse) (err error) {
+func (s *QueueService) Dequeue(req *DequeueRequest, resp *DequeueResponse) (err error) {
 	var el queue.Element
 	var seq int64
 	var e error
@@ -92,7 +92,7 @@ func (s *Service) Dequeue(req *DequeueRequest, resp *DequeueResponse) (err error
 	return
 }
 
-func (s *Service) List(req *ListRequest, resp *ListResponse) (err error) {
+func (s *QueueService) List(req *ListRequest, resp *ListResponse) (err error) {
 	lst, seq := s.q.List()
 	resp.Token = seq
 	for _, el := range lst {
@@ -109,7 +109,7 @@ func (s *Service) List(req *ListRequest, resp *ListResponse) (err error) {
 	return
 }
 
-func (s *Service) Remove(req *RemoveRequest, resp *RemoveResponse) (err error) {
+func (s *QueueService) Remove(req *RemoveRequest, resp *RemoveResponse) (err error) {
 	seq, e := s.q.Remove(req.Pos, req.Token)
 	resp.Token = seq
 	if e != nil {

@@ -15,7 +15,7 @@ func DefaultCommands(api *slack.Client, perms AdminInterface) (commands map[stri
 }
 
 type Command interface {
-	Handle(cmd *slack.SlashCommand, s *Service, w http.ResponseWriter) (err error)
+	Handle(cmd *slack.SlashCommand, s *QueueService, w http.ResponseWriter) (err error)
 }
 
 type ListCommand struct {
