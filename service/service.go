@@ -43,7 +43,7 @@ func (s *Service) Enqueue(req *EnqueueRequest, resp *EnqueueResponse) (err error
 	user := req.User
 	resp.User = user
 	now := time.Now()
-	pos, seq, e := s.q.Put(queue.Element{Id: user.ID, QTime: now})
+	pos, seq, e := s.q.Put(queue.Element{Id: user.ID, Metadata: req.Metadata, QTime: now})
 	resp.Pos = pos
 	if e != nil {
 		ae, ok := e.(queue.AlreadyExistsError)
@@ -87,6 +87,7 @@ func (s *Service) Dequeue(req *DequeueRequest, resp *DequeueResponse) (err error
 		return
 	}
 	resp.User = user
+	resp.Metadata = el.Metadata
 	resp.Timestamp = el.QTime
 	return
 }
@@ -102,6 +103,7 @@ func (s *Service) List(req *ListRequest, resp *ListResponse) (err error) {
 		} else {
 			resp.Users = append(resp.Users, user)
 			resp.Times = append(resp.Times, el.QTime)
+			resp.Metadata = append(resp.Metadata, el.Metadata)
 		}
 	}
 	return

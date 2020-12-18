@@ -18,6 +18,9 @@ func dequeueAsBlock(cmd *slack.SlashCommand, resp *DequeueResponse) (b []byte) {
 		timestr = ""
 	} else {
 		userstr = fmt.Sprintf("Ok! Up next is %s.", userToLink(resp.User))
+		if resp.Metadata != "" {
+			userstr = fmt.Sprintf("%s Topic: %s", userstr, resp.Metadata)
+		}
 		timestr = fmt.Sprintf("Time spent in queue: %v", (time.Now().Sub(resp.Timestamp)))
 	}
 
@@ -77,7 +80,7 @@ func (c *TakeCommand) Handle(cmd *slack.SlashCommand, s *Service, w http.Respons
 		glog.Errorf("Error sending admin message for dequeue of %v by %v: %v", resp.User.Name, cmd.UserName, cerr)
 	}
 
-	err = sendMatchDM(resp.User, user, c.api)
+	err = sendMatchDM(resp.User, user, resp.Metadata, c.api)
 	if err != nil {
 		glog.Errorf("Error sending match message: %+v", err)
 	}

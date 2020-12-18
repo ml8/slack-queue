@@ -14,8 +14,9 @@ import (
 //  - Concurrency control in service
 
 type Element struct {
-	Id    string    `json:"Id"`
-	QTime time.Time `json:"Timestamp"`
+	Id       string    `json:"Id"`
+	Metadata string    `json:"Metadata"`
+	QTime    time.Time `json:"Timestamp"`
 }
 
 type Queue interface {
