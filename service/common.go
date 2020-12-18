@@ -92,7 +92,7 @@ func getUsersInChannel(api *slack.Client, id string) (users []string, err error)
 			glog.Errorf("Error retrieving users in channel: %v", err)
 			return
 		}
-		glog.V(2).Info("Got %d users", len(u))
+		glog.V(2).Infof("Got %d users", len(u))
 		users = append(users, u...)
 		if nc == "" {
 			break
