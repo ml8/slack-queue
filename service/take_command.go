@@ -35,9 +35,8 @@ func dequeueAsBlock(cmd *slack.SlashCommand, resp *DequeueResponse) (b []byte) {
 }
 
 func (c *TakeCommand) Handle(cmd *slack.SlashCommand, s *Service, w http.ResponseWriter) (err error) {
-	// TODO Send message to auth channel
 	// Check permission to list queue.
-	user := &slack.User{ID: cmd.UserID}
+	user := &slack.User{ID: cmd.UserID, Name: cmd.UserName, TeamID: cmd.TeamID}
 	ok, err := c.perms.IsAdmin(user)
 	if err != nil {
 		glog.Errorf("Error checking admin status of %v (%v): %v", cmd.UserID, cmd.UserName, err)
@@ -61,15 +60,26 @@ func (c *TakeCommand) Handle(cmd *slack.SlashCommand, s *Service, w http.Respons
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
+
 	b := dequeueAsBlock(cmd, resp)
 	w.Header().Set("Content-Type", "application/json")
 	w.Write(b)
+
+	if resp.User == nil {
+		// No one was dequeued. Stop.
+		return
+	}
 
 	wt := time.Now().Sub(resp.Timestamp)
 	str := fmt.Sprintf("%s dequeued %s (wait time %v)", cmd.UserName, userToLink(resp.User), wt)
 	cerr := c.perms.SendAdminMessage(str)
 	if cerr != nil {
 		glog.Errorf("Error sending admin message for dequeue of %v by %v: %v", resp.User.Name, cmd.UserName, cerr)
+	}
+
+	err = sendMatchDM(resp.User, user, c.api)
+	if err != nil {
+		glog.Errorf("Error sending match message: %+v", err)
 	}
 
 	return
