@@ -1,7 +1,6 @@
 package main
 
 import (
-	"github.com/matthewlang/slack-queue/service"
 	"github.com/slack-go/slack"
 
 	"github.com/golang/glog"
@@ -15,11 +14,8 @@ import (
 	"strings"
 )
 
-var srv *service.Service
 var api *slack.Client
-var perms service.AdminInterface
-var cmds map[string]service.Command
-var actions map[string]service.Action
+var services map[string]*Server
 
 // Flags
 var (
@@ -27,7 +23,6 @@ var (
 	signingSecret string // Application signing secret
 	clientSecret  string // Application client secret
 	port          string // Port to listen on
-	adminChannel  string // Channel containing admin users
 	cmdUrl        string // URL to receive slash commands
 	actionUrl     string // URL to receive interactions
 )
@@ -46,15 +41,17 @@ func forwardCmd(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusUnauthorized)
 		return
 	}
+	glog.V(1).Infof("Command parsed as %v for %v", s.Command, s)
 
-	cmd, ok := cmds[s.Command]
-	glog.Infof("Command parsed as %v for %v", s.Command, s)
+	srv, ok := services[s.ChannelID]
 	if !ok {
-		w.WriteHeader(http.StatusNotFound)
+		glog.Infof("No server for channel %s (%s), creating...", s.ChannelID, s.ChannelName)
+		// XXX
+		services[s.ChannelID] = CreateServer(api, "adminchan")
 		return
 	}
+	srv.ForwardCommand(&s, w)
 
-	cmd.Handle(&s, srv, w)
 }
 
 func forwardAction(w http.ResponseWriter, r *http.Request) {
@@ -88,22 +85,15 @@ func forwardAction(w http.ResponseWriter, r *http.Request) {
 
 	glog.V(2).Infof("Action callback:\n%v", js)
 
-	var handler service.Action
-	ok := false
-	// Only looking for block actions; right now at most one per payload.
-	for _, act := range cb.ActionCallback.BlockActions {
-		handler, ok = actions[service.ParseAction(act.ActionID)]
-		if ok {
-			break
-		}
-	}
-
+	// TODO: is this the correct channel, when is cb.Channel and
+	// cb.Container.Channel different?
+	srv, ok := services[cb.Channel.ID]
 	if !ok {
-		glog.Errorf("Unknown action type: %v", cb.ActionID)
+		glog.Errorf("Received interaction for unserved channel %s (%s)", cb.Channel.ID, cb.Channel.Name)
 		w.WriteHeader(http.StatusNotFound)
 		return
 	}
-	handler.Handle(&cb, srv, w)
+	srv.ForwardAction(&cb, w)
 }
 
 func main() {
@@ -111,7 +101,6 @@ func main() {
 	flag.StringVar(&signingSecret, "ssecret", "", "Application signing secret")
 	flag.StringVar(&clientSecret, "csecret", "", "Application client secret")
 	flag.StringVar(&port, "p", ":1000", "Port to listen on")
-	flag.StringVar(&adminChannel, "authChannel", "", "Channel containing admin users")
 	flag.StringVar(&cmdUrl, "cmdUrl", "/slash", "URL to receive slash commands (e.g., '/slash' or '/receive', etc.)")
 	flag.StringVar(&actionUrl, "actionUrl", "/action", "URL to receive actions")
 
@@ -119,12 +108,8 @@ func main() {
 
 	glog.Infof("Starting on port %v ...", port)
 
-	// TODO this needs to be an object.
 	api = slack.New(oauth)
-	srv = service.InMemoryTS(api)
-	perms = service.MakeChannelPermissionChecker(api, adminChannel)
-	cmds = service.DefaultCommands(api, perms)
-	actions = service.DefaultActions(api, perms)
+	services = make(map[string]*Server)
 
 	http.HandleFunc(cmdUrl, forwardCmd)
 	http.HandleFunc(actionUrl, forwardAction)
