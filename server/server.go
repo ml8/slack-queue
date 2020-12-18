@@ -1,4 +1,4 @@
-package main
+package server
 
 import (
 	"github.com/matthewlang/slack-queue/service"
@@ -8,6 +8,19 @@ import (
 
 	"net/http"
 )
+
+type ServerGroup struct {
+	servers map[string]*Server
+	api     *slack.Client
+	admin   service.AdminInterface
+}
+
+func CreateServerGroup(api *slack.Client, admin service.AdminInterface) *ServerGroup {
+	return &ServerGroup{
+		servers: make(map[string]*Server),
+		api:     api,
+		admin:   admin}
+}
 
 type Server struct {
 	service  *service.Service
@@ -21,7 +34,7 @@ func CreateServer(api *slack.Client, adminChannel string) (s *Server) {
 	s = &Server{}
 	s.api = api
 	s.service = service.InMemoryTS(api)
-	s.admin = service.MakeChannelPermissionChecker(api, adminChannel)
+	s.admin = service.MakeChannelAdminInterface(api, adminChannel)
 	s.commands = service.DefaultCommands(api, s.admin)
 	s.actions = service.DefaultActions(api, s.admin)
 	return
@@ -56,5 +69,10 @@ func (s *Server) ForwardAction(act *slack.InteractionCallback, w http.ResponseWr
 	handler.Handle(act, s.service, w)
 }
 
-func HandleServiceFlow() {
+func (sg *ServerGroup) Lookup(id string) (srv *Server, found bool) {
+	srv, found = sg.servers[id]
+	return
+}
+
+func (sg *ServerGroup) Manage(cmd *slack.SlashCommand, w http.ResponseWriter) {
 }
