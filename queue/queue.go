@@ -2,6 +2,7 @@ package queue
 
 import (
 	"github.com/golang/glog"
+	"github.com/matthewlang/slack-queue/persister"
 
 	"errors"
 	"fmt"
@@ -36,10 +37,14 @@ type Queue interface {
 
 type queueImpl struct {
 	els     []Element
-	persist Persister
+	persist persister.Persister
 }
 
-func MakeQueue(persist Persister) Queue {
+type QueueState struct {
+	Elements []Element `json:"Elements"`
+}
+
+func MakeQueue(persist persister.Persister) Queue {
 	q := &queueImpl{}
 	q.persist = persist
 	return q
@@ -56,19 +61,24 @@ func (ae AlreadyExistsError) Error() string {
 
 func (q *queueImpl) Recover() {
 	if q.persist == nil {
+		glog.Infof("In-memory -- nothing to recover.")
 		return
 	}
-	q.els = q.persist.Read()
+	state := QueueState{}
+	q.persist.Read(&state)
+	q.els = state.Elements
+	glog.Infof("Recovered queue: %v", q.els)
 }
 
 func (q *queueImpl) Persist() {
 	if q.persist == nil {
 		return
 	}
-	err := q.persist.Write(q.els)
+	err := q.persist.Write(QueueState{q.els})
 	if err != nil {
 		glog.Errorln("Error encoding elements: ", err)
 	}
+	glog.V(2).Infof("Persisted.")
 }
 
 func (q *queueImpl) findInternal(id string) (pos int) {
@@ -105,6 +115,7 @@ func (q *queueImpl) Put(el Element) (pos int, err error) {
 	glog.Infof("Put %s", el.Id)
 	q.els = append(q.els, el)
 	pos = len(q.els) - 1
+	q.Persist()
 	return
 }
 
@@ -116,6 +127,7 @@ func (q *queueImpl) TakeFront() (el Element, err error) {
 	}
 	el = q.els[0]
 	q.els = q.els[1:]
+	q.Persist()
 	return
 }
 
@@ -132,6 +144,9 @@ func (q *queueImpl) takeInternal(i int) (el Element, err error) {
 
 func (q *queueImpl) Take(i int) (el Element, err error) {
 	el, err = q.takeInternal(i)
+	if err != nil {
+		q.Persist()
+	}
 	return
 }
 
@@ -154,13 +169,12 @@ func (q *queueImpl) Get(i int) (el Element, err error) {
 
 func (q *queueImpl) Remove(i int) (err error) {
 	glog.V(2).Infof("Remove %d", i)
-	q.dbg()
 	if i < 0 || i >= len(q.els) {
 		err = errors.New("No such element")
 		return
 	}
 	q.removeInternal(i)
-	q.dbg()
+	q.Persist()
 	return
 }
 
@@ -174,7 +188,6 @@ func (q *queueImpl) dlist() (lst []string) {
 
 func (q *queueImpl) Move(i int, npos int) (err error) {
 	glog.V(0).Infof("Move %d -> %d", i, npos)
-	q.dbg()
 	if i < 0 || i >= len(q.els) || npos < 0 || npos >= len(q.els) {
 		err = errors.New("No such element")
 		return
@@ -188,6 +201,7 @@ func (q *queueImpl) Move(i int, npos int) (err error) {
 	copy(q.els, tmp[:npos])
 	q.els[npos] = el
 	copy(q.els[npos+1:], tmp[npos:])
+	q.Persist()
 	return
 }
 

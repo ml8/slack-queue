@@ -1,6 +1,7 @@
 package main
 
 import (
+	"github.com/matthewlang/slack-queue/persister"
 	"github.com/matthewlang/slack-queue/server"
 	"github.com/matthewlang/slack-queue/service"
 	"github.com/slack-go/slack"
@@ -30,6 +31,7 @@ var (
 	actionUrl         string // URL to receive interactions
 	authChannel       string // Channel of members permitted to create queues.
 	managementCommand string // Command to manage queues.
+	stateFilename     string // File to store persistent state.
 )
 
 func forwardCmd(w http.ResponseWriter, r *http.Request) {
@@ -118,6 +120,7 @@ func main() {
 	flag.StringVar(&actionUrl, "actionUrl", "/action", "URL to receive actions")
 	flag.StringVar(&authChannel, "authChannel", "", "Channel authorized to create queues, empty means anyone can create a queue.")
 	flag.StringVar(&managementCommand, "managementCommand", "queue", "Command used to manage queues.")
+	flag.StringVar(&stateFilename, "stateFilename", "", "Root filename for persistent state.")
 
 	flag.Parse()
 
@@ -134,10 +137,21 @@ func main() {
 
 	api = slack.New(oauth)
 
+	var persist persister.Persister
+	if stateFilename != "" {
+		glog.Infof("Using %v for persistence.", stateFilename)
+		persist = persister.FilePersister{Fn: stateFilename}
+	} else {
+		glog.Infof("Using in-memory state.")
+	}
+
 	servers = server.CreateServerGroup(
 		api,
 		service.AdminInterfaceFromChannel(api, authChannel),
-		managementCommand)
+		managementCommand,
+		persist)
+
+	servers.Recover()
 
 	http.HandleFunc(cmdUrl, forwardCmd)
 	http.HandleFunc(actionUrl, forwardAction)

@@ -1,6 +1,7 @@
 package server
 
 import (
+	"github.com/matthewlang/slack-queue/persister"
 	"github.com/matthewlang/slack-queue/service"
 	"github.com/slack-go/slack"
 
@@ -24,22 +25,34 @@ type ServerGroup struct {
 	api     *slack.Client
 	admin   service.AdminInterface
 	command string
+	persist persister.Persister
 }
 
-func CreateServerGroup(api *slack.Client, admin service.AdminInterface, command string) *ServerGroup {
+func CreateServerGroup(api *slack.Client, admin service.AdminInterface, command string, persist persister.Persister) *ServerGroup {
 	return &ServerGroup{
 		servers: make(map[string]*Server),
 		api:     api,
 		admin:   admin,
-		command: command}
+		command: command,
+		persist: persist}
 }
 
 type Server struct {
-	api      *slack.Client
-	service  *service.QueueService
-	admin    service.AdminInterface
-	commands map[string]service.Command
-	actions  map[string]service.Action
+	api       *slack.Client
+	service   *service.QueueService
+	admin     service.AdminInterface
+	commands  map[string]service.Command
+	actions   map[string]service.Action
+	adminChan string
+}
+
+type ServerState struct {
+	ChannelID string `json:"ChannelID"`
+	AdminChan string `json:"AdminChan"`
+}
+
+type ServerGroupState struct {
+	States []ServerState `json:"States"`
 }
 
 func CreateServer(api *slack.Client, adminChannel string) (s *Server) {
@@ -88,6 +101,52 @@ func (sg *ServerGroup) Lookup(id string) (srv *Server, found bool) {
 	return
 }
 
+func (sg *ServerGroup) Persist() {
+	if sg.persist == nil {
+		return
+	}
+	glog.Infof("Persisting server list...")
+	state := make([]ServerState, len(sg.servers))
+	i := 0
+	for key := range sg.servers {
+		glog.Infof("x")
+		state[i] = ServerState{
+			ChannelID: key,
+			AdminChan: sg.servers[key].adminChan}
+	}
+	sgstate := ServerGroupState{state}
+	glog.Infof("%d", sgstate.States)
+	sg.persist.Write(sgstate)
+}
+
+func (sg *ServerGroup) Recover() {
+	if sg.persist == nil {
+		glog.Infof("Nothing to recover, using in-memory state.")
+		return
+	}
+	glog.Infof("Recovering server list...")
+	sgstate := ServerGroupState{}
+	sg.persist.Read(&sgstate)
+	glog.Infof("Recovered %d servers.", len(sgstate.States))
+	for _, state := range sgstate.States {
+		glog.Infof("Creating server for channel %v with admin channel %v", state.ChannelID, state.AdminChan)
+		persist := persister.FilePersister{Fn: sg.persist.Id() + "-" + state.AdminChan}
+		srv := service.PersistentTS(sg.api, persist)
+		srv.Recover()
+
+		admin := service.MakeChannelAdminInterface(sg.api, state.AdminChan)
+		sg.servers[state.ChannelID] = &Server{
+			api:       sg.api,
+			service:   srv,
+			admin:     admin,
+			commands:  service.DefaultCommands(sg.api, admin),
+			actions:   service.DefaultActions(sg.api, admin),
+			adminChan: state.AdminChan}
+	}
+}
+
+// TODO this code is a mess
+
 func parseCommand(msg string) (cmd string, rest string, err error) {
 	parts := strings.Split(msg, " ")
 	if len(parts) > 2 || len(parts) < 1 {
@@ -106,8 +165,6 @@ func (sg *ServerGroup) usage(cmd *slack.SlashCommand, w http.ResponseWriter) {
 		slack.MsgOptionPostEphemeral(cmd.UserID))
 }
 
-// TODO this code is a mess
-
 func (sg *ServerGroup) add(cmd *slack.SlashCommand, action string, channel string) {
 	sg.Lock()
 	defer sg.Unlock()
@@ -123,14 +180,20 @@ func (sg *ServerGroup) add(cmd *slack.SlashCommand, action string, channel strin
 
 	// Create it.
 	admin := service.AdminInterfaceFromChannel(sg.api, channel)
+	var persist persister.Persister
+	if sg.persist != nil {
+		persist = persister.FilePersister{Fn: sg.persist.Id() + "-" + cmd.ChannelID}
+	}
 	sg.servers[cmd.ChannelID] = &Server{
-		api:      sg.api,
-		service:  service.InMemoryTS(sg.api),
-		admin:    admin,
-		commands: service.DefaultCommands(sg.api, admin),
-		actions:  service.DefaultActions(sg.api, admin)}
+		api:       sg.api,
+		service:   service.PersistentTS(sg.api, persist),
+		admin:     admin,
+		commands:  service.DefaultCommands(sg.api, admin),
+		actions:   service.DefaultActions(sg.api, admin),
+		adminChan: channel}
 	sg.api.PostMessage(cmd.ChannelID,
 		slack.MsgOptionText("Queue created for channel.", false))
+	sg.Persist()
 }
 
 func (sg *ServerGroup) rm(cmd *slack.SlashCommand, action string) {
@@ -142,6 +205,7 @@ func (sg *ServerGroup) rm(cmd *slack.SlashCommand, action string) {
 
 	if ok {
 		delete(sg.servers, cmd.ChannelID)
+		sg.Persist()
 		sg.api.PostMessage(cmd.ChannelID,
 			slack.MsgOptionText("Deleted this channel's queue.", false))
 	} else {
