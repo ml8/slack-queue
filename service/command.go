@@ -6,11 +6,17 @@ import (
 	"net/http"
 )
 
-func DefaultCommands(api *slack.Client, perms AdminInterface) (commands map[string]Command) {
+type CommandNames struct {
+	Take string
+	Put  string
+	List string
+}
+
+func DefaultCommands(api *slack.Client, perms AdminInterface, names CommandNames) (commands map[string]Command) {
 	commands = make(map[string]Command)
-	commands["/enqueue"] = &PutCommand{api, perms}
-	commands["/list"] = &ListCommand{api, perms}
-	commands["/dequeue"] = &TakeCommand{api, perms}
+	commands[names.Put] = &PutCommand{api, perms}
+	commands[names.List] = &ListCommand{api, perms}
+	commands[names.Take] = &TakeCommand{api, perms}
 	return
 }
 

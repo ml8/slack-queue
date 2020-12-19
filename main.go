@@ -32,6 +32,9 @@ var (
 	authChannel       string // Channel of members permitted to create queues.
 	managementCommand string // Command to manage queues.
 	stateFilename     string // File to store persistent state.
+	listCommand       string // Slash command for list
+	putCommand        string // Slash command for put
+	takeCommand       string // Slash command for take
 )
 
 func forwardCmd(w http.ResponseWriter, r *http.Request) {
@@ -111,6 +114,13 @@ func forwardAction(w http.ResponseWriter, r *http.Request) {
 	srv.ForwardAction(&cb, w)
 }
 
+func slashify(s string) string {
+	if s[0] != '/' {
+		return "/" + s
+	}
+	return s
+}
+
 func main() {
 	flag.StringVar(&oauth, "oauth", "", "OAuth Token")
 	flag.StringVar(&signingSecret, "ssecret", "", "Application signing secret")
@@ -121,6 +131,9 @@ func main() {
 	flag.StringVar(&authChannel, "authChannel", "", "Channel authorized to create queues, empty means anyone can create a queue.")
 	flag.StringVar(&managementCommand, "managementCommand", "queue", "Command used to manage queues.")
 	flag.StringVar(&stateFilename, "stateFilename", "", "Root filename for persistent state.")
+	flag.StringVar(&listCommand, "listCommand", "list", "Name of list slash command.")
+	flag.StringVar(&putCommand, "putCommand", "put", "Name of list slash command.")
+	flag.StringVar(&takeCommand, "takeCommand", "take", "Name of take slash command.")
 
 	flag.Parse()
 
@@ -130,9 +143,11 @@ func main() {
 		glog.Fatalf("Must supply a management command.")
 	}
 
-	if managementCommand[0] != '/' {
-		managementCommand = "/" + managementCommand
-	}
+	managementCommand = slashify(managementCommand)
+	listCommand = slashify(listCommand)
+	putCommand = slashify(putCommand)
+	takeCommand = slashify(takeCommand)
+
 	glog.Infof("Using %s for management commands.", managementCommand)
 
 	api = slack.New(oauth)
@@ -149,6 +164,7 @@ func main() {
 		api,
 		service.AdminInterfaceFromChannel(api, authChannel),
 		managementCommand,
+		service.CommandNames{List: listCommand, Put: putCommand, Take: takeCommand},
 		persist)
 
 	servers.Recover()

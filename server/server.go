@@ -21,20 +21,22 @@ const (
 
 type ServerGroup struct {
 	sync.Mutex
-	servers map[string]*Server
-	api     *slack.Client
-	admin   service.AdminInterface
-	command string
-	persist persister.Persister
+	servers      map[string]*Server
+	api          *slack.Client
+	admin        service.AdminInterface
+	command      string
+	commandNames service.CommandNames
+	persist      persister.Persister
 }
 
-func CreateServerGroup(api *slack.Client, admin service.AdminInterface, command string, persist persister.Persister) *ServerGroup {
+func CreateServerGroup(api *slack.Client, admin service.AdminInterface, command string, commandNames service.CommandNames, persist persister.Persister) *ServerGroup {
 	return &ServerGroup{
-		servers: make(map[string]*Server),
-		api:     api,
-		admin:   admin,
-		command: command,
-		persist: persist}
+		servers:      make(map[string]*Server),
+		api:          api,
+		admin:        admin,
+		command:      command,
+		commandNames: commandNames,
+		persist:      persist}
 }
 
 type Server struct {
@@ -53,16 +55,6 @@ type ServerState struct {
 
 type ServerGroupState struct {
 	States []ServerState `json:"States"`
-}
-
-func CreateServer(api *slack.Client, adminChannel string) (s *Server) {
-	s = &Server{}
-	s.api = api
-	s.service = service.InMemoryTS(api)
-	s.admin = service.MakeChannelAdminInterface(api, adminChannel)
-	s.commands = service.DefaultCommands(api, s.admin)
-	s.actions = service.DefaultActions(api, s.admin)
-	return
 }
 
 func (s *Server) ForwardCommand(cmd *slack.SlashCommand, w http.ResponseWriter) {
@@ -139,7 +131,7 @@ func (sg *ServerGroup) Recover() {
 			api:       sg.api,
 			service:   srv,
 			admin:     admin,
-			commands:  service.DefaultCommands(sg.api, admin),
+			commands:  service.DefaultCommands(sg.api, admin, sg.commandNames),
 			actions:   service.DefaultActions(sg.api, admin),
 			adminChan: state.AdminChan}
 	}
@@ -188,7 +180,7 @@ func (sg *ServerGroup) add(cmd *slack.SlashCommand, action string, channel strin
 		api:       sg.api,
 		service:   service.PersistentTS(sg.api, persist),
 		admin:     admin,
-		commands:  service.DefaultCommands(sg.api, admin),
+		commands:  service.DefaultCommands(sg.api, admin, sg.commandNames),
 		actions:   service.DefaultActions(sg.api, admin),
 		adminChan: channel}
 	sg.api.PostMessage(cmd.ChannelID,
