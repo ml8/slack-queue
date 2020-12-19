@@ -1,6 +1,7 @@
 package service
 
 import (
+	"github.com/matthewlang/slack-queue/persister"
 	"github.com/matthewlang/slack-queue/queue"
 
 	"github.com/golang/glog"
@@ -32,7 +33,12 @@ func InMemoryTS(api *slack.Client) *QueueService {
 	return TS(u, nil)
 }
 
-func TS(u UserLookup, persist queue.Persister) *QueueService {
+func PersistentTS(api *slack.Client, persist persister.Persister) *QueueService {
+	u := &UserLookupImpl{api}
+	return TS(u, persist)
+}
+
+func TS(u UserLookup, persist persister.Persister) *QueueService {
 	s := &QueueService{}
 	s.q = queue.VQ(persist)
 	s.u = u
@@ -122,5 +128,10 @@ func (s *QueueService) Remove(req *RemoveRequest, resp *RemoveResponse) (err err
 	}
 	glog.Infof("Remove at %d with token %d, error: %+v", req.Pos, req.Token, err)
 	resp.Err = e
+	return
+}
+
+func (s *QueueService) Recover() {
+	s.q.Recover()
 	return
 }

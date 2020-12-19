@@ -2,6 +2,7 @@ package queue
 
 import (
 	"github.com/golang/glog"
+	"github.com/matthewlang/slack-queue/persister"
 
 	"fmt"
 	"sync"
@@ -23,7 +24,7 @@ type VersionedQueue struct {
 	mu  sync.Mutex
 }
 
-func VQ(persist Persister) (vq *VersionedQueue) {
+func VQ(persist persister.Persister) (vq *VersionedQueue) {
 	vq = &VersionedQueue{}
 	vq.q = MakeQueue(persist)
 	return

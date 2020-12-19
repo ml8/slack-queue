@@ -1,6 +1,8 @@
 package queue
 
 import (
+	"github.com/matthewlang/slack-queue/persister"
+
 	"bytes"
 	"io"
 	"os"
@@ -188,7 +190,7 @@ func TestGetTake(t *testing.T) {
 
 func PersistTest(t *testing.T) {
 	fn := t.TempDir() + "/state"
-	fp := FilePersister{fn: fn}
+	fp := persister.FilePersister{Fn: fn}
 	q = MakeQueue(fp)
 
 	expected := make([]int, 100)
