@@ -132,8 +132,8 @@ func main() {
 	flag.StringVar(&managementCommand, "managementCommand", "queue", "Command used to manage queues.")
 	flag.StringVar(&stateFilename, "stateFilename", "", "Root filename for persistent state.")
 	flag.StringVar(&listCommand, "listCommand", "list", "Name of list slash command.")
-	flag.StringVar(&putCommand, "putCommand", "put", "Name of list slash command.")
-	flag.StringVar(&takeCommand, "takeCommand", "take", "Name of take slash command.")
+	flag.StringVar(&putCommand, "putCommand", "enqueue", "Name of list slash command.")
+	flag.StringVar(&takeCommand, "takeCommand", "dequeue", "Name of take slash command.")
 
 	flag.Parse()
 
