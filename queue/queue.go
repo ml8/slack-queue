@@ -9,11 +9,6 @@ import (
 	"time"
 )
 
-// TODO:
-//  - Include generation number for indexed take/put/get
-//  - Include version in service
-//  - Concurrency control in service
-
 type Element struct {
 	Id       string    `json:"Id"`
 	Metadata string    `json:"Metadata"`
