@@ -61,6 +61,9 @@ func (a *MoveAction) Handle(action *slack.InteractionCallback, s *QueueService, 
 		return
 	}
 
+	// Don't care about ok status, since the UI will be refreshed with the current
+	// state anyway.
+
 	w.WriteHeader(http.StatusOK)
 
 	// Replace list with updated state.
