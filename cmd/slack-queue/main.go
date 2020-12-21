@@ -1,9 +1,9 @@
 package main
 
 import (
-	"github.com/matthewlang/slack-queue/persister"
-	"github.com/matthewlang/slack-queue/server"
-	"github.com/matthewlang/slack-queue/service"
+	"github.com/matthewlang/slack-queue/pkg/persister"
+	"github.com/matthewlang/slack-queue/pkg/server"
+	"github.com/matthewlang/slack-queue/pkg/service"
 	"github.com/slack-go/slack"
 
 	"github.com/golang/glog"

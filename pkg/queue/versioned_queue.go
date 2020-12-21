@@ -2,7 +2,7 @@ package queue
 
 import (
 	"github.com/golang/glog"
-	"github.com/matthewlang/slack-queue/persister"
+	"github.com/matthewlang/slack-queue/pkg/persister"
 
 	"fmt"
 	"sync"
