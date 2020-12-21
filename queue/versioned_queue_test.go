@@ -1,7 +1,6 @@
 package queue
 
 import (
-	"fmt"
 	"strconv"
 	"testing"
 )
@@ -29,6 +28,7 @@ func TestPutIncreases(t *testing.T) {
 
 func TestTakeFrontIncreases(t *testing.T) {
 	vq = VQ(nil)
+	populate(vq, 1)
 	oseq := vq.seq
 	_, seq, _ = vq.TakeFront()
 	if oseq >= vq.seq {
@@ -181,7 +181,6 @@ func TestSize(t *testing.T) {
 
 func TestRecoverResets(t *testing.T) {
 	vq = VQ(nil)
-	fmt.Println("wtf")
 	populate(vq, 10)
 
 	if vq.seq == 0 {

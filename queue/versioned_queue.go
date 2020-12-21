@@ -13,7 +13,7 @@ import (
 // All operations return a version number associated with the state of an
 // underlying queue. Modification operations must supply a version number,
 // except for blind writes (e.g., Put and TakeFront). All possible modifications
-// to the backing queue increase the version number, even on error.
+// to the backing queue increase the version number.
 //
 // Version mismatches return a VersionError.
 //
@@ -51,7 +51,9 @@ func (vq *VersionedQueue) Put(el Element) (pos int, seq int64, err error) {
 	vq.mu.Lock()
 	defer vq.mu.Unlock()
 	pos, err = vq.q.Put(el)
-	vq.seq += 1
+	if err == nil {
+		vq.seq += 1
+	}
 	seq = vq.seq
 	return
 }
@@ -60,7 +62,9 @@ func (vq *VersionedQueue) TakeFront() (el Element, seq int64, err error) {
 	vq.mu.Lock()
 	defer vq.mu.Unlock()
 	el, err = vq.q.TakeFront()
-	vq.seq += 1
+	if err == nil {
+		vq.seq += 1
+	}
 	seq = vq.seq
 	return
 }
@@ -74,7 +78,9 @@ func (vq *VersionedQueue) Take(i int, seq int64) (el Element, nseq int64, err er
 		return
 	}
 	el, err = vq.q.Take(i)
-	vq.seq += 1
+	if err == nil {
+		vq.seq += 1
+	}
 	nseq = vq.seq
 	return
 }
@@ -100,7 +106,9 @@ func (vq *VersionedQueue) Remove(i int, seq int64) (nseq int64, err error) {
 		return
 	}
 	err = vq.q.Remove(i)
-	vq.seq += 1
+	if err == nil {
+		vq.seq += 1
+	}
 	nseq = vq.seq
 	return
 }
@@ -113,7 +121,9 @@ func (vq *VersionedQueue) Move(i int, npos int, seq int64) (nseq int64, err erro
 		return
 	}
 	err = vq.q.Move(i, npos)
-	vq.seq += 1
+	if err == nil {
+		vq.seq += 1
+	}
 	nseq = vq.seq
 	return
 }
