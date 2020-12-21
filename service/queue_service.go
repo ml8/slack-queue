@@ -119,8 +119,7 @@ func (s *QueueService) Remove(req *RemoveRequest, resp *RemoveResponse) (err err
 	seq, e := s.q.Remove(req.Pos, req.Token)
 	resp.Token = seq
 	if e != nil {
-		ae, ok := e.(queue.VersionError)
-		if !ok {
+		if ae, ok := e.(queue.VersionError); !ok {
 			glog.Errorf("Unknown error on remove at %d with token %d: %+v:", req.Pos, req.Token, ae)
 			err = ae
 			return
@@ -128,6 +127,21 @@ func (s *QueueService) Remove(req *RemoveRequest, resp *RemoveResponse) (err err
 	}
 	glog.Infof("Remove at %d with token %d, error: %+v", req.Pos, req.Token, err)
 	resp.Err = e
+	return
+}
+
+func (s *QueueService) Move(req *MoveRequest, resp *MoveResponse) (err error) {
+	seq, e := s.q.Move(req.Pos, req.NPos, req.Token)
+	resp.Token = seq
+	if e != nil {
+		if ae, ok := e.(queue.VersionError); !ok {
+			glog.Errorf("Unknown error on move %d -> %d with token %d, error: %+v", req.Pos, req.NPos, req.Token, ae)
+			err = ae
+			return
+		}
+	}
+	glog.Info("Move %d -> %d, err: %+v", req.Pos, req.NPos, err)
+	resp.Ok = err == nil
 	return
 }
 

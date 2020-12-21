@@ -50,3 +50,14 @@ type RemoveResponse struct {
 	Err   error
 	Token int64
 }
+
+type MoveRequest struct {
+	Pos   int
+	NPos  int
+	Token int64
+}
+
+type MoveResponse struct {
+	Ok    bool
+	Token int64
+}
