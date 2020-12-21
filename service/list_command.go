@@ -24,9 +24,18 @@ func listAsBlock(resp *ListResponse) (blocks []slack.Block) {
 		userblock := slack.NewTextBlockObject("mrkdwn", userinfo, false, false)
 		iconblock := slack.NewImageBlockElement(user.Profile.Image24, user.Name)
 		blocks[i*3+1] = slack.NewSectionBlock(userblock, nil, slack.NewAccessory(iconblock))
-		remove := slack.NewButtonBlockElement("remove", GenerateActionValue(i, resp.Token), slack.NewTextBlockObject("plain_text", "Remove", false, false))
-		take := slack.NewButtonBlockElement("take", GenerateActionValue(i, resp.Token), slack.NewTextBlockObject("plain_text", "Dequeue", false, false))
-		blocks[i*3+2] = slack.NewActionBlock(fmt.Sprintf("actions_%v", user.ID), remove, take)
+
+		buttons := make([]slack.BlockElement, 2, 4)
+
+		buttons[0] = slack.NewButtonBlockElement("remove", GenerateActionValue(i, resp.Token), slack.NewTextBlockObject("plain_text", "Remove", false, false))
+		buttons[1] = slack.NewButtonBlockElement("take", GenerateActionValue(i, resp.Token), slack.NewTextBlockObject("plain_text", "Dequeue", false, false))
+		if i != 0 {
+			buttons = append(buttons, slack.NewButtonBlockElement("up", GenerateActionValue(i, resp.Token), slack.NewTextBlockObject("plain_text", ":arrow_up_small:", true, false)))
+		}
+		if i != len(resp.Users)-1 {
+			buttons = append(buttons, slack.NewButtonBlockElement("down", GenerateActionValue(i, resp.Token), slack.NewTextBlockObject("plain_text", ":arrow_down_small:", true, false)))
+		}
+		blocks[i*3+2] = slack.NewActionBlock(fmt.Sprintf("actions_%v", user.ID), buttons...)
 	}
 
 	return

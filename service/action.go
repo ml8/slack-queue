@@ -7,8 +7,11 @@ import (
 )
 
 const (
+	// TODO make flags or make a config file.
 	takeActionName   = "take"
 	removeActionName = "remove"
+	upActionName     = "up"
+	downActionName   = "down"
 )
 
 // TODO(#20): There is a ton of duplicate code between the dequeue action and command and
@@ -18,6 +21,8 @@ func DefaultActions(api *slack.Client, perms AdminInterface) (actions map[string
 	actions = make(map[string]Action)
 	actions[removeActionName] = &RemoveAction{api, perms}
 	actions[takeActionName] = &TakeAction{api, perms}
+	actions[upActionName] = &MoveAction{api, perms}
+	actions[downActionName] = &MoveAction{api, perms}
 	return
 }
 
@@ -35,6 +40,11 @@ type RemoveAction struct {
 }
 
 type TakeAction struct {
+	api   *slack.Client
+	perms AdminInterface
+}
+
+type MoveAction struct {
 	api   *slack.Client
 	perms AdminInterface
 }
