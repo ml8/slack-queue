@@ -12,7 +12,7 @@ import (
 type Element struct {
 	Id       string    `json:"Id"`
 	Metadata string    `json:"Metadata"`
-	QTime    time.Time `json:"Timestamp"`
+	QTime    time.Time `json:"QTime"`
 }
 
 type Queue interface {
@@ -139,7 +139,7 @@ func (q *queueImpl) takeInternal(i int) (el Element, err error) {
 
 func (q *queueImpl) Take(i int) (el Element, err error) {
 	el, err = q.takeInternal(i)
-	if err != nil {
+	if err == nil {
 		q.Persist()
 	}
 	return
