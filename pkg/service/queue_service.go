@@ -140,7 +140,7 @@ func (s *QueueService) Move(req *MoveRequest, resp *MoveResponse) (err error) {
 			return
 		}
 	}
-	glog.Info("Move %d -> %d, err: %+v", req.Pos, req.NPos, err)
+	glog.Infof("Move %d -> %d, err: %+v", req.Pos, req.NPos, err)
 	resp.Ok = err == nil
 	return
 }
