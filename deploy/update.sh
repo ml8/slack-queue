@@ -1,11 +1,7 @@
 #!/bin/bash
 
-docker build -t slack-queue -f Dockerfile .
-docker tag slack-queue:latest gcr.io/${SQ_GCP_PROJECT}/slack-queue
-docker push gcr.io/${SQ_GCP_PROJECT}/slack-queue
-
-gcloud compute instances update-container slack-queue \
-  --container-image gcr.io/${SQ_GCP_PROJECT}/slack-queue:latest \
+gcloud compute instances update-container ${SQ_VM} \
+  --container-image gcr.io/${SQ_GCP_PROJECT}/slack-queue:${SQ_VERSION_TAG} \
   --container-arg="-oauth=${SQ_OAUTH}" \
   --container-arg="-ssecret=${SQ_SIGNING_SECRET}" \
   --container-arg="-csecret=${SQ_CLIENT_SECRET}" \
