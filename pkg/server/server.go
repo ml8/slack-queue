@@ -101,10 +101,11 @@ func (sg *ServerGroup) Persist() {
 	state := make([]ServerState, len(sg.servers))
 	i := 0
 	for key := range sg.servers {
-		glog.Infof("x")
+		glog.Infof("%v", key)
 		state[i] = ServerState{
 			ChannelID: key,
 			AdminChan: sg.servers[key].adminChan}
+		i += 1
 	}
 	sgstate := ServerGroupState{state}
 	glog.Infof("%d", sgstate.States)
