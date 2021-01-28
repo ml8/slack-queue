@@ -60,6 +60,11 @@ func (c *PutCommand) Handle(cmd *slack.SlashCommand, s *QueueService, w http.Res
 		return
 	}
 
+	fu, err := c.ul.Lookup(req.User.ID)
+	if err == nil {
+		resp.User = fu
+	}
+
 	str := fmt.Sprintf("%s added to queue in position %d for %s", userToLink(resp.User), resp.Pos+1, cmd.Text)
 	cerr := c.perms.SendAdminMessage(str)
 	if cerr != nil {

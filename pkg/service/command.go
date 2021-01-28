@@ -14,9 +14,9 @@ type CommandNames struct {
 
 func DefaultCommands(api *slack.Client, perms AdminInterface, names CommandNames) (commands map[string]Command) {
 	commands = make(map[string]Command)
-	commands[names.Put] = &PutCommand{api, perms}
+	commands[names.Put] = &PutCommand{api, perms, &UserLookupImpl{api}}
 	commands[names.List] = &ListCommand{api, perms}
-	commands[names.Take] = &TakeCommand{api, perms}
+	commands[names.Take] = &TakeCommand{api, perms, &UserLookupImpl{api}}
 	return
 }
 
@@ -32,9 +32,11 @@ type ListCommand struct {
 type PutCommand struct {
 	api   *slack.Client
 	perms AdminInterface
+	ul    UserLookup
 }
 
 type TakeCommand struct {
 	api   *slack.Client
 	perms AdminInterface
+	ul    UserLookup
 }

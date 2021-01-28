@@ -19,8 +19,8 @@ const (
 
 func DefaultActions(api *slack.Client, perms AdminInterface) (actions map[string]Action) {
 	actions = make(map[string]Action)
-	actions[removeActionName] = &RemoveAction{api, perms}
-	actions[takeActionName] = &TakeAction{api, perms}
+	actions[removeActionName] = &RemoveAction{api, perms, &UserLookupImpl{api}}
+	actions[takeActionName] = &TakeAction{api, perms, &UserLookupImpl{api}}
 	actions[upActionName] = &MoveAction{api, perms}
 	actions[downActionName] = &MoveAction{api, perms}
 	return
@@ -37,11 +37,13 @@ type Action interface {
 type RemoveAction struct {
 	api   *slack.Client
 	perms AdminInterface
+	ul    UserLookup
 }
 
 type TakeAction struct {
 	api   *slack.Client
 	perms AdminInterface
+	ul    UserLookup
 }
 
 type MoveAction struct {
