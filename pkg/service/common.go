@@ -37,5 +37,9 @@ func readFile(fn string) (content string) {
 }
 
 func userToLink(user *slack.User) string {
-	return fmt.Sprintf("<slack://user?id=%s&team=%s|%s>", user.ID, user.TeamID, user.Name)
+	name := user.Name
+	if user.RealName != "" {
+		name = user.RealName
+	}
+	return fmt.Sprintf("<slack://user?id=%s&team=%s|%s>", user.ID, user.TeamID, name)
 }

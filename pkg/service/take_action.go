@@ -10,7 +10,9 @@ import (
 )
 
 func sendMatchDM(user *slack.User, admin *slack.User, msg string, api *slack.Client) (err error) {
-	txt := fmt.Sprintf("Hello %s! You've been matched with %s.", user.Name, admin.Name)
+	txt := fmt.Sprintf(
+		"Hello %s! You've been matched with %s. Would you like to start a Zoom call?",
+		user.RealName, admin.RealName)
 	if msg != "" {
 		txt = fmt.Sprintf("%s Topic: %s", txt, msg)
 	}
@@ -70,7 +72,7 @@ func (a *TakeAction) Handle(action *slack.InteractionCallback, s *QueueService, 
 
 	err = s.Dequeue(req, resp)
 	if err != nil {
-		glog.Errorf("Error dequeueing a request from %v (%v): %v", action.User.ID, action.User.Name, err)
+		glog.Errorf("Error dequeueing a request from %v (%v): %v", user.ID, user.Name, err)
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
@@ -85,13 +87,18 @@ func (a *TakeAction) Handle(action *slack.InteractionCallback, s *QueueService, 
 		return
 	}
 
+	fu, err := a.ul.Lookup(user.ID)
+	if err == nil {
+		user = fu
+	}
+
 	err = sendMatchDM(resp.User, user, resp.Metadata, a.api)
 	if err != nil {
 		glog.Errorf("Error sending match message: %+v", err)
 	}
 
 	wt := time.Now().Sub(resp.Timestamp)
-	str := fmt.Sprintf("%s dequeued %s (wait time %v)", userToLink(&action.User), userToLink(resp.User), wt)
+	str := fmt.Sprintf("%s dequeued %s (wait time %v)", userToLink(user), userToLink(resp.User), wt)
 	cerr := a.perms.SendAdminMessage(str)
 	if cerr != nil {
 		glog.Errorf("Error sending admin message for dequeue of %v by %v: %v", resp.User.Name, action.User.Name, cerr)

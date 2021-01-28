@@ -56,6 +56,11 @@ func (a *RemoveAction) Handle(action *slack.InteractionCallback, s *QueueService
 
 	w.WriteHeader(http.StatusOK)
 
+	fu, err := a.ul.Lookup(user.ID)
+	if err == nil {
+		user = fu
+	}
+
 	// Post admin message
 	var str string
 	if resp.Err != nil {
@@ -63,7 +68,7 @@ func (a *RemoveAction) Handle(action *slack.InteractionCallback, s *QueueService
 		// str = "Remove failed: Queue has been modified since listing."
 	} else {
 		glog.Infof("Successfully removed pos %d, new sequence %d", req.Pos, resp.Token)
-		str = fmt.Sprintf("%s removed position %d\n", userToLink(&action.User), req.Pos+1)
+		str = fmt.Sprintf("%s removed position %d\n", userToLink(user), req.Pos+1)
 	}
 	a.perms.SendAdminMessage(str)
 
