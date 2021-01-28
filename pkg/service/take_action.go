@@ -10,7 +10,9 @@ import (
 )
 
 func sendMatchDM(user *slack.User, admin *slack.User, msg string, api *slack.Client) (err error) {
-	txt := fmt.Sprintf("Hello %s! You've been matched with %s.", user.Name, admin.Name)
+	txt := fmt.Sprintf(
+		"Hello %s! You've been matched with %s. Would you like to start a Zoom call?",
+		user.Name, admin.Name)
 	if msg != "" {
 		txt = fmt.Sprintf("%s Topic: %s", txt, msg)
 	}
