@@ -79,7 +79,7 @@ func (c *TakeCommand) Handle(cmd *slack.SlashCommand, s *QueueService, w http.Re
 	}
 
 	wt := time.Now().Sub(resp.Timestamp)
-	str := fmt.Sprintf("%s dequeued %s (wait time %v)", cmd.UserName, userToLink(resp.User), wt)
+	str := fmt.Sprintf("%s dequeued %s (wait time %v)", userToLink(user), userToLink(resp.User), wt)
 	cerr := c.perms.SendAdminMessage(str)
 	if cerr != nil {
 		glog.Errorf("Error sending admin message for dequeue of %v by %v: %v", resp.User.Name, cmd.UserName, cerr)
