@@ -127,7 +127,7 @@ func (sg *ServerGroup) Recover() {
 		srv := service.PersistentTS(sg.api, persist)
 		srv.Recover()
 
-		admin := service.MakeChannelAdminInterface(sg.api, state.AdminChan)
+		admin := service.AdminInterfaceFromChannel(sg.api, state.AdminChan)
 		sg.servers[state.ChannelID] = &Server{
 			api:       sg.api,
 			service:   srv,
