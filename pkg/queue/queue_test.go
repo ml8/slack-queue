@@ -1,7 +1,7 @@
 package queue
 
 import (
-	"github.com/matthewlang/slack-queue/persister"
+	"github.com/ml8/slack-queue/persister"
 
 	"bytes"
 	"io"

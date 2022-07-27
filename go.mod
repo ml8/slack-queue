@@ -1,4 +1,4 @@
-module github.com/matthewlang/slack-queue
+module github.com/ml8/slack-queue
 
 go 1.15
 
