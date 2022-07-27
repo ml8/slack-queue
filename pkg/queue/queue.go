@@ -2,7 +2,7 @@ package queue
 
 import (
 	"github.com/golang/glog"
-	"github.com/matthewlang/slack-queue/pkg/persister"
+	"github.com/ml8/slack-queue/pkg/persister"
 
 	"errors"
 	"fmt"
